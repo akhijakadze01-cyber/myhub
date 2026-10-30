@@ -23,6 +23,49 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
 
+  <!-- AUTH OVERLAY (შესვლა / რეგისტრაცია) -->
+  <div id="authScreen" class="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6">
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 bg-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-white text-2xl shadow-lg shadow-indigo-500/30">
+          <i class="fa-solid fa-compass-drafting"></i>
+        </div>
+        <h2 id="authTitle" class="text-xl font-bold text-white tracking-wide">სისტემაში შესვლა</h2>
+        <p class="text-xs text-slate-400">თქვენი პირადი სამუშაო სივრცე და კალენდარი</p>
+      </div>
+
+      <div id="authError" class="hidden p-3 rounded-xl bg-rose-950/60 border border-rose-800/60 text-rose-300 text-xs text-center font-medium"></div>
+
+      <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">ელფოსტა</label>
+          <div class="relative">
+            <i class="fa-regular fa-envelope absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+            <input type="email" id="authEmail" required placeholder="name@example.com" class="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800/90 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">პაროლი</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+            <input type="password" id="authPassword" required minlength="6" placeholder="მინიმუმ 6 სიმბოლო" class="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800/90 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+          </div>
+        </div>
+
+        <button type="submit" id="authSubmitBtn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition">
+          შესვლა
+        </button>
+      </form>
+
+      <div class="text-center pt-2 border-t border-slate-800">
+        <button onclick="toggleAuthMode()" id="authSwitchBtn" class="text-xs text-indigo-400 hover:text-indigo-300 transition">
+          არ გაქვთ ექაუნთი? დარეგისტრირდით
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Header -->
   <header class="bg-slate-800/90 border-b border-slate-700/80 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur shadow-sm">
     <div class="flex items-center space-x-3">
@@ -32,14 +75,24 @@
       <div>
         <div class="flex items-center gap-2">
           <h1 class="text-lg font-bold tracking-tight text-white">პერსონალური სამუშაო სივრცე</h1>
-          <span id="cloudStatus" class="text-[10px] bg-emerald-950/80 border border-emerald-500/50 text-emerald-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
-            <i class="fa-solid fa-cloud"></i> დაკავშირებულია
+          <span id="cloudStatus" class="text-[10px] bg-amber-950/80 border border-amber-500/50 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+            <i class="fa-solid fa-spinner fa-spin"></i> კავშირი...
           </span>
         </div>
         <p class="text-xs text-slate-400" id="currentDateStr"></p>
       </div>
     </div>
+    
     <div class="flex items-center space-x-3">
+      <!-- მომხმარებლის პროფილი & Logout -->
+      <div class="flex items-center gap-2 bg-slate-900/80 border border-slate-700/80 px-3 py-1.5 rounded-xl text-xs">
+        <i class="fa-regular fa-user text-indigo-400"></i>
+        <span id="userEmailBadge" class="text-slate-300 font-medium truncate max-w-[130px] sm:max-w-xs"></span>
+        <button onclick="handleSignOut()" title="გამოსვლა" class="text-slate-500 hover:text-rose-400 ml-1 transition">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+
       <button id="notifyBtn" onclick="toggleNotificationAccess()" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-900/40 text-amber-200 border border-amber-700/50 hover:bg-amber-800/40 transition flex items-center gap-1.5">
         <i class="fa-regular fa-bell"></i> <span id="notifyBtnText">ხმა / შეხსენება</span>
       </button>
@@ -296,10 +349,22 @@
     </div>
   </div>
 
-  <!-- Firebase Cloud Integration Scripts (v10 SDK) -->
+  <!-- Firebase Modular SDK v10 (Auth + Firestore Realtime) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { 
+      getAuth, 
+      onAuthStateChanged, 
+      signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { 
+      getFirestore, 
+      doc, 
+      setDoc, 
+      onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA2lrjOW8TeswftptplsjLeBZKsmFC3VYM",
@@ -312,88 +377,176 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
-    const hubDocRef = doc(db, "myhub_data", "main_profile");
 
-    window.saveHubToCloud = async function() {
+    let unsubscribeSnapshot = null;
+    window.currentUser = null;
+
+    // Login / Register Form Handler
+    window.handleAuthAction = async function(email, password, isRegister) {
+      const errEl = document.getElementById('authError');
+      errEl.classList.add('hidden');
       try {
-        const payload = {
-          tasks: window.tasks,
-          birthdays: window.birthdays,
-          habits: window.habits,
-          goals: window.goals,
-          updatedAt: Date.now()
-        };
-        await setDoc(hubDocRef, payload);
+        if (isRegister) {
+          await createUserWithEmailAndPassword(auth, email, password);
+        } else {
+          await signInWithEmailAndPassword(auth, email, password);
+        }
       } catch (err) {
-        console.error("Cloud save error:", err);
+        let msg = "ავტორიზაცია ვერ მოხერხდა.";
+        if (err.code === 'auth/invalid-email') msg = "არასწორი ელფოსტის ფორმატი.";
+        else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = "ელფოსტა ან პაროლი არასწორია.";
+        else if (err.code === 'auth/email-already-in-use') msg = "ეს ელფოსტა უკვე რეგისტრირებულია.";
+        else if (err.code === 'auth/weak-password') msg = "პაროლი უნდა შედგებოდეს მინიმუმ 6 სიმბოლოსგან.";
+        
+        errEl.innerText = msg;
+        errEl.classList.remove('hidden');
       }
     };
 
-    // Real-time Cloud Sync Listener
-    let isInitialCloudLoad = true;
-    onSnapshot(hubDocRef, (snap) => {
-      const statusEl = document.getElementById('cloudStatus');
-      if (snap.exists()) {
-        const data = snap.data();
-        if (data) {
-          window.tasks = data.tasks || [];
-          window.birthdays = data.birthdays || [];
-          window.habits = data.habits || [];
-          window.goals = data.goals || [];
-
-          localStorage.setItem('my_tasks', JSON.stringify(window.tasks));
-          localStorage.setItem('my_birthdays', JSON.stringify(window.birthdays));
-          localStorage.setItem('my_habits', JSON.stringify(window.habits));
-          localStorage.setItem('my_goals', JSON.stringify(window.goals));
-
-          window.renderAll();
-        }
-      } else if (isInitialCloudLoad) {
-        // თუ პირველი ჩართვაა და Cloud-ში ჯერ ცარიელია, ავტვირთოთ არსებული მონაცემები
-        window.saveHubToCloud();
+    window.handleSignOut = function() {
+      if (confirm('ნამდვილად გსურთ გამოსვლა?')) {
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+        signOut(auth);
       }
-      isInitialCloudLoad = false;
-      if (statusEl) {
-        statusEl.innerHTML = '<i class="fa-solid fa-cloud"></i> დაკავშირებულია';
-        statusEl.className = "text-[10px] bg-emerald-950/80 border border-emerald-500/50 text-emerald-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold";
-      }
-    }, (error) => {
-      console.warn("Cloud connection offline:", error);
+    };
+
+    // Listen to User Auth State
+    onAuthStateChanged(auth, (user) => {
+      const authScreen = document.getElementById('authScreen');
+      const emailBadge = document.getElementById('userEmailBadge');
       const statusEl = document.getElementById('cloudStatus');
-      if (statusEl) {
-        statusEl.innerHTML = '<i class="fa-solid fa-cloud-slash"></i> Offline (ლოკალური)';
-        statusEl.className = "text-[10px] bg-amber-950/80 border border-amber-500/50 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold";
+
+      if (user) {
+        window.currentUser = user;
+        emailBadge.innerText = user.email;
+        authScreen.classList.add('hidden');
+
+        // თითოეულ მომხმარებელს აქვს თავისი იზოლირებული დოკუმენტი Firestore-ში:
+        const userDocRef = doc(db, "users", user.uid);
+
+        window.saveHubToCloud = async function() {
+          try {
+            await setDoc(userDocRef, {
+              tasks: window.tasks,
+              birthdays: window.birthdays,
+              habits: window.habits,
+              goals: window.goals,
+              updatedAt: Date.now()
+            });
+          } catch (e) {
+            console.error("Firestore sync error:", e);
+          }
+        };
+
+        // Realtime Listener თითოეული მომხმარებლისთვის
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+        unsubscribeSnapshot = onSnapshot(userDocRef, (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            window.tasks = data.tasks || [];
+            window.birthdays = data.birthdays || [];
+            window.habits = data.habits || [];
+            window.goals = data.goals || [];
+
+            localStorage.setItem(`tasks_${user.uid}`, JSON.stringify(window.tasks));
+            localStorage.setItem(`birthdays_${user.uid}`, JSON.stringify(window.birthdays));
+            localStorage.setItem(`habits_${user.uid}`, JSON.stringify(window.habits));
+            localStorage.setItem(`goals_${user.uid}`, JSON.stringify(window.goals));
+
+            window.renderAll();
+          } else {
+            // ახალი მომხმარებლის პირველი შესვლა: საწყისი შაბლონი
+            window.tasks = [];
+            window.birthdays = [];
+            window.habits = [
+              { id: 1, title: 'წყლის ბალანსი (2ლ)', done: false },
+              { id: 2, title: 'ვარჯიში / აქტივობა', done: false },
+              { id: 3, title: 'კითხვა / განვითარება', done: false }
+            ];
+            window.goals = [
+              { id: 1, title: 'თვიური მიზნების შესრულება', progress: 30 }
+            ];
+            window.saveHubToCloud();
+            window.renderAll();
+          }
+
+          if (statusEl) {
+            statusEl.innerHTML = '<i class="fa-solid fa-cloud"></i> დაკავშირებულია';
+            statusEl.className = "text-[10px] bg-emerald-950/80 border border-emerald-500/50 text-emerald-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold";
+          }
+        }, (error) => {
+          console.warn("Snapshot offline:", error);
+          if (statusEl) {
+            statusEl.innerHTML = '<i class="fa-solid fa-cloud-slash"></i> Offline';
+            statusEl.className = "text-[10px] bg-amber-950/80 border border-amber-500/50 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold";
+          }
+        });
+
+      } else {
+        window.currentUser = null;
+        authScreen.classList.remove('hidden');
+        window.tasks = [];
+        window.birthdays = [];
+        window.habits = [];
+        window.goals = [];
+        window.renderAll();
       }
     });
   </script>
 
-  <!-- ძირითადი ფუნქციონალი -->
+  <!-- ძირითადი ფუნქციონალი & UI -->
   <script>
-    // State
-    window.tasks = JSON.parse(localStorage.getItem('my_tasks')) || [];
-    window.birthdays = JSON.parse(localStorage.getItem('my_birthdays')) || [];
-    window.habits = JSON.parse(localStorage.getItem('my_habits')) || [
-      { id: 1, title: 'წყლის ბალანსი (2ლ)', done: false },
-      { id: 2, title: 'ვარჯიში / აქტივობა', done: false },
-      { id: 3, title: 'კითხვა / განვითარება', done: false }
-    ];
-    window.goals = JSON.parse(localStorage.getItem('my_goals')) || [
-      { id: 1, title: 'თვიური პროექტების დასრულება', progress: 40 },
-      { id: 2, title: 'ოჯახური დასვენების ორგანიზება', progress: 70 }
-    ];
+    let isRegisterMode = false;
+    window.tasks = [];
+    window.birthdays = [];
+    window.habits = [];
+    window.goals = [];
 
     let currentFilter = 'ყველა';
     let calDate = new Date();
     let selectedCalendarDate = new Date().toISOString().slice(0, 10);
     let soundEnabled = localStorage.getItem('sound_enabled') === 'true';
 
-    // Cloud + Local Storage Sync
+    // Auth Switch Mode
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      const title = document.getElementById('authTitle');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const switchBtn = document.getElementById('authSwitchBtn');
+      const errEl = document.getElementById('authError');
+      errEl.classList.add('hidden');
+
+      if (isRegisterMode) {
+        title.innerText = 'ახალი ექაუნთის შექმნა';
+        submitBtn.innerText = 'რეგისტრაცია';
+        switchBtn.innerText = 'უკვე გაქვთ ექაუნთი? შესვლა';
+      } else {
+        title.innerText = 'სისტემაში შესვლა';
+        submitBtn.innerText = 'შესვლა';
+        switchBtn.innerText = 'არ გაქვთ ექაუნთი? დარეგისტრირდით';
+      }
+    }
+
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      if (!email || !password) return;
+      if (window.handleAuthAction) {
+        window.handleAuthAction(email, password, isRegisterMode);
+      }
+    }
+
+    // Cloud + Local Sync
     function syncAndSave() {
-      localStorage.setItem('my_tasks', JSON.stringify(window.tasks));
-      localStorage.setItem('my_birthdays', JSON.stringify(window.birthdays));
-      localStorage.setItem('my_habits', JSON.stringify(window.habits));
-      localStorage.setItem('my_goals', JSON.stringify(window.goals));
+      if (window.currentUser) {
+        localStorage.setItem(`tasks_${window.currentUser.uid}`, JSON.stringify(window.tasks));
+        localStorage.setItem(`birthdays_${window.currentUser.uid}`, JSON.stringify(window.birthdays));
+        localStorage.setItem(`habits_${window.currentUser.uid}`, JSON.stringify(window.habits));
+        localStorage.setItem(`goals_${window.currentUser.uid}`, JSON.stringify(window.goals));
+      }
       if (window.saveHubToCloud) {
         window.saveHubToCloud();
       }
