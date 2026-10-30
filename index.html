@@ -30,8 +30,8 @@
       </div>
     </div>
     <div class="flex items-center space-x-3">
-      <button onclick="requestNotificationAccess()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 transition flex items-center gap-1.5">
-        <i class="fa-regular fa-bell"></i> ხმა / შეხსენება
+      <button id="notifyBtn" onclick="toggleNotificationAccess()" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 transition flex items-center gap-1.5">
+        <i class="fa-regular fa-bell"></i> <span id="notifyBtnText">ხმა / შეხსენება</span>
       </button>
       <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
         <i id="themeIcon" class="fa-solid fa-moon"></i>
@@ -140,9 +140,12 @@
 
         <!-- ყოველდღიური ჩვევები -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-            <i class="fa-solid fa-heart-pulse text-rose-500"></i> დღის ჩვევები
-          </h3>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-heart-pulse text-rose-500"></i> დღის ჩვევები
+            </h3>
+            <button onclick="addHabitPrompt()" class="text-[11px] text-indigo-600 font-bold hover:underline">+ ახალი</button>
+          </div>
           <div id="habitsList" class="space-y-2"></div>
         </div>
 
@@ -270,6 +273,7 @@
     ];
     let currentFilter = 'ყველა';
     let calDate = new Date();
+    let soundEnabled = localStorage.getItem('sound_enabled') === 'true';
 
     // Init Date Header
     const now = new Date();
@@ -291,40 +295,52 @@
     }
 
     // Audio & Notifications
-    function playChime() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const now = ctx.currentTime;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, now);
-        osc.frequency.setValueAtTime(880.00, now + 0.15);
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.8);
-      } catch (e) {}
-    }
-
-    function requestNotificationAccess() {
-      if ('Notification' in window) {
-        Notification.requestPermission().then(res => {
-          if (res === 'granted') {
-            playChime();
-            new Notification('შეხსენებები გააქტიურებულია!', {
-              body: 'ხმოვანი სიგნალი იმუშავებს დათქმულ დროს.',
-              icon: 'https://cdn-icons-png.flaticon.com/512/906/906334.png'
-            });
-          }
-        });
+    function updateNotifyBtnUI() {
+      const btn = document.getElementById('notifyBtn');
+      const text = document.getElementById('notifyBtnText');
+      if (soundEnabled) {
+        btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-200 transition flex items-center gap-1.5";
+        text.innerText = "ხმა ჩართულია";
+      } else {
+        btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 transition flex items-center gap-1.5";
+        text.innerText = "ხმა / შეხსენება";
       }
     }
 
-    // Interval for Alert Check
+    function playChime() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, t);
+        osc.frequency.setValueAtTime(880.00, t + 0.15);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.3, t + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.8);
+      } catch (e) {}
+    }
+
+    function toggleNotificationAccess() {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem('sound_enabled', soundEnabled);
+      updateNotifyBtnUI();
+
+      if (soundEnabled) {
+        playChime();
+        if ('Notification' in window && Notification.permission !== 'granted') {
+          Notification.requestPermission();
+        }
+      }
+    }
+
+    // Time Check
     setInterval(() => {
       const d = new Date();
       const currentHoursMin = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -524,11 +540,11 @@
       }
     }
 
-    // PDF Modal & Printing Logic
+    // PDF Generation
     function openPdfModal() {
       const today = new Date().toISOString().slice(0, 10);
-      const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
-      document.getElementById('pdfStartDate').value = firstDayOfMonth;
+      const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+      document.getElementById('pdfStartDate').value = firstDay;
       document.getElementById('pdfEndDate').value = today;
       document.getElementById('pdfModal').classList.remove('hidden');
     }
@@ -582,9 +598,7 @@
             table { width: 100%; border-collapse: collapse; text-align: left; }
             th { background: #f8fafc; padding: 10px 8px; font-size: 12px; font-weight: 700; color: #475569; border-bottom: 2px solid #cbd5e1; }
             .footer { margin-top: 40px; font-size: 11px; text-align: right; color: #94a3b8; }
-            @media print {
-              body { padding: 0; }
-            }
+            @media print { body { padding: 0; } }
           </style>
         </head>
         <body>
@@ -596,7 +610,6 @@
               <strong>ჯამური რაოდენობა:</strong> ${filteredCompleted.length}
             </div>
           </div>
-
           <table>
             <thead>
               <tr>
@@ -606,20 +619,10 @@
                 <th style="width: 120px; text-align: center;">თარიღი</th>
               </tr>
             </thead>
-            <tbody>
-              ${tableRows}
-            </tbody>
+            <tbody>${tableRows}</tbody>
           </table>
-
-          <div class="footer">
-            დაგენერირებულია პერსონალური სამუშაო სივრციდან • ${new Date().toLocaleDateString('ka-GE')}
-          </div>
-
-          <script>
-            window.onload = function() {
-              window.print();
-            };
-          <\/script>
+          <div class="footer">დაგენერირებულია პერსონალური სამუშაო სივრციდან • ${new Date().toLocaleDateString('ka-GE')}</div>
+          <script>window.onload = function() { window.print(); };<\/script>
         </body>
         </html>
       `);
@@ -712,6 +715,15 @@
       });
     }
 
+    function addHabitPrompt() {
+      const title = prompt('შეიყვანეთ ახალი ჩვევა:');
+      if (title) {
+        habits.push({ id: Date.now(), title, done: false });
+        localStorage.setItem('my_habits', JSON.stringify(habits));
+        renderHabits();
+      }
+    }
+
     function toggleHabit(id) {
       habits = habits.map(h => h.id === id ? { ...h, done: !h.done } : h);
       localStorage.setItem('my_habits', JSON.stringify(habits));
@@ -768,6 +780,7 @@
       renderCalendar();
       renderGoals();
       renderHabits();
+      updateNotifyBtnUI();
     }
 
     if ('serviceWorker' in navigator) {
