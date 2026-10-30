@@ -2,8 +2,8 @@
 <html lang="ka">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>პერსონალური სამუშაო სივრცე</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>პერსონალური პროდუქტიულობის ჰაბი</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4f46e5">
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/906/906334.png">
@@ -19,18 +19,18 @@
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
 
   <!-- Header -->
-  <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+  <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20 shadow-sm">
     <div class="flex items-center space-x-3">
       <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-md">
-        <i class="fa-solid fa-bolt"></i>
+        <i class="fa-solid fa-compass-drafting"></i>
       </div>
       <div>
-        <h1 class="text-xl font-bold tracking-tight">დღის მართვის ცენტრი</h1>
+        <h1 class="text-xl font-bold tracking-tight">პერსონალური სამუშაო სივრცე</h1>
         <p class="text-xs text-slate-500 dark:text-slate-400" id="currentDateStr"></p>
       </div>
     </div>
     <div class="flex items-center space-x-3">
-      <button id="notifyBtn" onclick="requestNotificationAccess()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 transition flex items-center gap-1.5">
+      <button onclick="requestNotificationAccess()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 transition flex items-center gap-1.5">
         <i class="fa-regular fa-bell"></i> ხმა / შეხსენება
       </button>
       <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
@@ -39,85 +39,113 @@
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Main Grid Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-    <!-- მარცხენა სვეტი: Quick Task & დავალებები -->
-    <div class="lg:col-span-2 space-y-6">
+    <!-- მარცხენა სვეტი: Quick Task & სია (5 სვეტი) -->
+    <div class="lg:col-span-5 space-y-6">
       
-      <!-- Quick Task Input -->
+      <!-- Quick Task Entry -->
       <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
-          <i class="fa-solid fa-plus-circle text-indigo-500"></i> ახალი საქმე
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-bolt text-amber-500"></i> სწრაფი დავალება (Quick Task)
         </h2>
         <form onsubmit="addTask(event)" class="space-y-3">
-          <input type="text" id="taskTitle" placeholder="რა გაქვთ გასაკეთებელი?" required
-                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+          <input type="text" id="taskTitle" placeholder="ჩაწერეთ საქმე..." required
+                 class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
           
-          <div class="flex flex-wrap items-center gap-3">
-            <select id="taskCategory" class="px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none">
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <select id="taskCategory" class="px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
               <option value="სამსახური">💼 სამსახური</option>
               <option value="ოჯახი">🏡 ოჯახი</option>
               <option value="პირადი">🎯 პირადი / მიზნები</option>
             </select>
+            <input type="date" id="taskDate" class="px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+          </div>
 
-            <input type="time" id="taskTime" class="px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none">
-            
-            <button type="submit" class="ml-auto px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-md transition flex items-center gap-2">
-              დამატება <i class="fa-solid fa-arrow-right"></i>
+          <div class="flex items-center gap-2">
+            <input type="time" id="taskTime" class="px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
+            <button type="submit" class="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow transition flex items-center justify-center gap-1.5">
+              დამატება <i class="fa-solid fa-plus"></i>
             </button>
           </div>
         </form>
       </div>
 
-      <!-- დავალებების ჩამონათვალი ფილტრებით -->
+      <!-- საქმეების სია და ფილტრი -->
       <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700 mb-4">
-          <h2 class="text-base font-bold">დაგეგმილი საქმეები</h2>
-          <div class="flex gap-1 text-xs">
-            <button onclick="filterTasks('ყველა')" class="filter-btn px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold" data-cat="ყველა">ყველა</button>
-            <button onclick="filterTasks('სამსახური')" class="filter-btn px-2.5 py-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700" data-cat="სამსახური">💼 სამსახური</button>
-            <button onclick="filterTasks('ოჯახი')" class="filter-btn px-2.5 py-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700" data-cat="ოჯახი">🏡 ოჯახი</button>
-            <button onclick="filterTasks('პირადი')" class="filter-btn px-2.5 py-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700" data-cat="პირადი">🎯 პირადი</button>
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700 mb-3">
+          <h2 class="text-sm font-bold">აქტიური საქმეები</h2>
+          <div class="flex gap-1 text-[11px]">
+            <button onclick="setFilter('ყველა')" class="cat-btn px-2 py-0.5 rounded font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400" data-f="ყველა">ყველა</button>
+            <button onclick="setFilter('სამსახური')" class="cat-btn px-2 py-0.5 rounded text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700" data-f="სამსახური">სამსახური</button>
+            <button onclick="setFilter('ოჯახი')" class="cat-btn px-2 py-0.5 rounded text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700" data-f="ოჯახი">ოჯახი</button>
+            <button onclick="setFilter('პირადი')" class="cat-btn px-2 py-0.5 rounded text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700" data-f="პირადი">პირადი</button>
           </div>
         </div>
+        <div id="taskList" class="space-y-2 max-h-[300px] overflow-y-auto custom-scroll pr-1"></div>
+      </div>
 
-        <div id="taskList" class="space-y-2.5 max-h-[420px] overflow-y-auto custom-scroll pr-1">
-          <!-- დინამიური დავალებები -->
+      <!-- დასრულებული საქმეების არქივი -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-check-double text-emerald-500"></i> დასრულებული საქმეები
+          </h2>
+          <span id="completedCount" class="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">0</span>
         </div>
+        <div id="completedList" class="space-y-1.5 max-h-[140px] overflow-y-auto custom-scroll pr-1 text-xs"></div>
       </div>
 
     </div>
 
-    <!-- მარჯვენა სვეტი: ჩვევები, მიზნები და სარეზერვო კოპირება -->
-    <div class="space-y-6">
+    <!-- მარჯვენა სვეტი: კალენდარი, მიზნები, ჩვევები (7 სვეტი) -->
+    <div class="lg:col-span-7 space-y-6">
 
-      <!-- ყოველდღიური ჩვევები -->
+      <!-- თვიური კალენდარი -->
       <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
-        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
-          <i class="fa-solid fa-heart-pulse text-rose-500"></i> ყოველდღიური ჩვევები
-        </h3>
-        <div class="space-y-3" id="habitsList">
-          <!-- Habits -->
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold flex items-center gap-2">
+            <i class="fa-regular fa-calendar-days text-indigo-500"></i> <span id="calendarMonthYear"></span>
+          </h2>
+          <div class="space-x-1">
+            <button onclick="changeMonth(-1)" class="w-7 h-7 rounded border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-100 dark:hover:bg-slate-700"><i class="fa-solid fa-chevron-left"></i></button>
+            <button onclick="changeMonth(1)" class="w-7 h-7 rounded border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-100 dark:hover:bg-slate-700"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
         </div>
+        <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-slate-400 mb-2">
+          <div>ორშ</div><div>სამ</div><div>ოთხ</div><div>ხუთ</div><div>პარ</div><div>შაბ</div><div>კვ</div>
+        </div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 text-xs"></div>
       </div>
 
-      <!-- მიზნები და პროგრესი -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-            <i class="fa-solid fa-bullseye text-emerald-500"></i> თვიური მიზნები
+      <!-- მიზნები და ჩვევები ორ სვეტად -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- მიზნები -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-bullseye text-indigo-500"></i> მიზნები
+            </h3>
+            <button onclick="addGoalPrompt()" class="text-[11px] text-indigo-600 font-bold hover:underline">+ ახალი</button>
+          </div>
+          <div id="goalsList" class="space-y-3"></div>
+        </div>
+
+        <!-- ყოველდღიური ჩვევები -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+            <i class="fa-solid fa-heart-pulse text-rose-500"></i> დღის ჩვევები
           </h3>
-          <button onclick="addGoalPrompt()" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">+ მიზანი</button>
+          <div id="habitsList" class="space-y-2"></div>
         </div>
-        <div class="space-y-4" id="goalsList">
-          <!-- Goals -->
-        </div>
+
       </div>
 
-      <!-- მონაცემთა ექსპორტი / იმპორტი -->
+      <!-- მონაცემთა მართვა (Export / Import) -->
       <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-200/80 dark:border-slate-700 text-xs flex justify-between items-center text-slate-500">
-        <span>მონაცემების მართვა:</span>
+        <span>მონაცემების სარეზერვო კოპია:</span>
         <div class="space-x-2">
           <button onclick="exportData()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded font-medium text-slate-700 dark:text-slate-200">გადმოწერა</button>
           <label class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded font-medium text-slate-700 dark:text-slate-200 cursor-pointer">
@@ -143,12 +171,14 @@
       { id: 2, title: 'ოჯახური დასვენების ორგანიზება', progress: 70 }
     ];
     let currentFilter = 'ყველა';
+    let calDate = new Date();
 
-    // Current Date
-    const today = new Date();
-    document.getElementById('currentDateStr').innerText = today.toLocaleDateString('ka-GE', {
+    // Init Date Header
+    const now = new Date();
+    document.getElementById('currentDateStr').innerText = now.toLocaleDateString('ka-GE', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
+    document.getElementById('taskDate').value = now.toISOString().slice(0, 10);
 
     // Dark Mode
     function toggleDarkMode() {
@@ -162,39 +192,33 @@
       document.getElementById('themeIcon').className = 'fa-solid fa-sun';
     }
 
-    // Audio Alert Synthesizer
+    // Audio & Notifications
     function playChime() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const now = ctx.currentTime;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-
         osc.type = 'sine';
         osc.frequency.setValueAtTime(587.33, now);
         osc.frequency.setValueAtTime(880.00, now + 0.15);
-
         gain.gain.setValueAtTime(0, now);
         gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
-
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 0.8);
-      } catch (e) {
-        console.log('Audio error:', e);
-      }
+      } catch (e) {}
     }
 
-    // Notifications
     function requestNotificationAccess() {
       if ('Notification' in window) {
         Notification.requestPermission().then(res => {
           if (res === 'granted') {
             playChime();
             new Notification('შეხსენებები გააქტიურებულია!', {
-              body: 'თქვენ მიიღებთ ხმოვან შეტყობინებებს დათქმულ დროს.',
+              body: 'ხმოვანი სიგნალი იმუშავებს დათქმულ დროს.',
               icon: 'https://cdn-icons-png.flaticon.com/512/906/906334.png'
             });
           }
@@ -202,13 +226,14 @@
       }
     }
 
-    // Background Task Check for Time Reminder
+    // Interval for Alert Check
     setInterval(() => {
-      const now = new Date();
-      const currentHoursMin = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      
+      const d = new Date();
+      const currentHoursMin = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      const todayIso = d.toISOString().slice(0, 10);
+
       tasks.forEach(t => {
-        if (!t.completed && t.time === currentHoursMin && !t.alerted) {
+        if (!t.completed && t.time === currentHoursMin && (!t.date || t.date === todayIso) && !t.alerted) {
           t.alerted = true;
           saveTasks();
           playChime();
@@ -225,47 +250,48 @@
     // Tasks Management
     function addTask(e) {
       e.preventDefault();
-      const input = document.getElementById('taskTitle');
+      const title = document.getElementById('taskTitle').value.trim();
       const category = document.getElementById('taskCategory').value;
+      const date = document.getElementById('taskDate').value;
       const time = document.getElementById('taskTime').value;
 
-      if (!input.value.trim()) return;
+      if (!title) return;
 
-      const newTask = {
+      tasks.unshift({
         id: Date.now(),
-        title: input.value.trim(),
-        category: category,
+        title,
+        category,
+        date: date || null,
         time: time || null,
         completed: false,
         alerted: false
-      };
+      });
 
-      tasks.unshift(newTask);
       saveTasks();
-      renderTasks();
-      input.value = '';
+      renderAll();
+      document.getElementById('taskTitle').value = '';
       document.getElementById('taskTime').value = '';
     }
 
     function toggleTask(id) {
       tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
       saveTasks();
-      renderTasks();
+      renderAll();
     }
 
     function deleteTask(id) {
       tasks = tasks.filter(t => t.id !== id);
       saveTasks();
-      renderTasks();
+      renderAll();
     }
 
-    function filterTasks(cat) {
+    function setFilter(cat) {
       currentFilter = cat;
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        if (btn.getAttribute('data-cat') === cat) {
-          btn.className = 'filter-btn px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold';
+      document.querySelectorAll('.cat-btn').forEach(b => {
+        if (b.getAttribute('data-f') === cat) {
+          b.className = 'cat-btn px-2 py-0.5 rounded font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400';
         } else {
-          btn.className = 'filter-btn px-2.5 py-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700';
+          b.className = 'cat-btn px-2 py-0.5 rounded text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700';
         }
       });
       renderTasks();
@@ -276,46 +302,150 @@
     }
 
     function renderTasks() {
-      const container = document.getElementById('taskList');
-      container.innerHTML = '';
+      const activeList = document.getElementById('taskList');
+      const compList = document.getElementById('completedList');
+      activeList.innerHTML = '';
+      compList.innerHTML = '';
 
-      const filtered = tasks.filter(t => currentFilter === 'ყველა' ? true : t.category === currentFilter);
+      const active = tasks.filter(t => !t.completed && (currentFilter === 'ყველა' || t.category === currentFilter));
+      const completed = tasks.filter(t => t.completed);
 
-      if (filtered.length === 0) {
-        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-6">საქმეები არ არის დამატებული</p>`;
-        return;
-      }
+      document.getElementById('completedCount').innerText = completed.length;
 
-      filtered.forEach(t => {
-        const catBadgeColors = {
-          'სამსახური': 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-          'ოჯახი': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-          'პირადი': 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
-        }[t.category] || 'bg-slate-100 text-slate-700';
+      if (active.length === 0) {
+        activeList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">აქტიური საქმეები არ არის</p>`;
+      } else {
+        active.forEach(t => {
+          const badgeClass = {
+            'სამსახური': 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+            'ოჯახი': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+            'პირადი': 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+          }[t.category] || 'bg-slate-100 text-slate-700';
 
-        const div = document.createElement('div');
-        div.className = `flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-700/60 transition ${t.completed ? 'bg-slate-50/70 dark:bg-slate-900/40 opacity-60' : 'bg-slate-50 dark:bg-slate-900/70 hover:border-slate-300'}`;
-        div.innerHTML = `
-          <div class="flex items-center gap-3 overflow-hidden">
-            <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" 
-                   class="w-4 h-4 rounded text-indigo-600 focus:ring-0 cursor-pointer">
-            <div class="truncate">
-              <span class="text-sm ${t.completed ? 'line-through text-slate-400' : 'font-medium'}">${t.title}</span>
-              <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-[10px] px-2 py-0.5 rounded-md font-semibold ${catBadgeColors}">${t.category}</span>
-                ${t.time ? `<span class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><i class="fa-regular fa-clock text-[10px]"></i> ${t.time}</span>` : ''}
+          const div = document.createElement('div');
+          div.className = 'flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-900/70';
+          div.innerHTML = `
+            <div class="flex items-center gap-2.5 overflow-hidden">
+              <input type="checkbox" onchange="toggleTask(${t.id})" class="w-4 h-4 rounded text-indigo-600 cursor-pointer">
+              <div class="truncate">
+                <span class="text-xs font-semibold">${t.title}</span>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-[9px] px-1.5 py-0.2 rounded font-bold ${badgeClass}">${t.category}</span>
+                  ${t.date ? `<span class="text-[10px] text-slate-400">${t.date}</span>` : ''}
+                  ${t.time ? `<span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock"></i> ${t.time}</span>` : ''}
+                </div>
               </div>
             </div>
+            <button onclick="deleteTask(${t.id})" class="text-slate-400 hover:text-rose-500 text-xs p-1"><i class="fa-solid fa-trash-can"></i></button>
+          `;
+          activeList.appendChild(div);
+        });
+      }
+
+      if (completed.length === 0) {
+        compList.innerHTML = `<p class="text-slate-400 text-center py-2">დასრულებული საქმეები ჯერ არ არის</p>`;
+      } else {
+        completed.slice(0, 10).forEach(t => {
+          const div = document.createElement('div');
+          div.className = 'flex items-center justify-between py-1 border-b border-slate-100 dark:border-slate-800 text-slate-400';
+          div.innerHTML = `
+            <div class="flex items-center gap-2 truncate">
+              <i class="fa-solid fa-check text-emerald-500 text-[10px]"></i>
+              <span class="line-through truncate">${t.title}</span>
+            </div>
+            <button onclick="deleteTask(${t.id})" class="hover:text-rose-500 text-[10px] ml-2"><i class="fa-solid fa-xmark"></i></button>
+          `;
+          compList.appendChild(div);
+        });
+      }
+    }
+
+    // Calendar
+    function changeMonth(delta) {
+      calDate.setMonth(calDate.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const year = calDate.getFullYear();
+      const month = calDate.getMonth();
+      const monthNames = ["იანვარი", "თებერვალი", "მარტი", "აპრილი", "მაისი", "ივნისი", "ივლისი", "აგვისტო", "სექტემბერი", "ოქტომბერი", "ნოემბერი", "დეკემბერი"];
+      document.getElementById('calendarMonthYear').innerText = `${monthNames[month]} ${year}`;
+
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDayIndex; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'h-14 rounded-lg bg-slate-50/40 dark:bg-slate-900/20';
+        grid.appendChild(empty);
+      }
+
+      const todayIso = new Date().toISOString().slice(0, 10);
+
+      for (let day = 1; day <= lastDay; day++) {
+        const curDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayTasks = tasks.filter(t => t.date === curDateStr);
+
+        const cell = document.createElement('div');
+        cell.className = `h-14 p-1 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col justify-between ${curDateStr === todayIso ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/20' : 'bg-slate-50/80 dark:bg-slate-900/50'}`;
+        
+        let dotsHtml = '';
+        dayTasks.slice(0, 3).forEach(t => {
+          const dotColor = t.category === 'სამსახური' ? 'bg-blue-500' : (t.category === 'ოჯახი' ? 'bg-emerald-500' : 'bg-purple-500');
+          dotsHtml += `<div class="w-1.5 h-1.5 rounded-full ${dotColor}"></div>`;
+        });
+
+        cell.innerHTML = `
+          <span class="text-[10px] font-bold ${curDateStr === todayIso ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}">${day}</span>
+          <div class="flex gap-0.5 justify-center mt-auto">${dotsHtml}</div>
+        `;
+        grid.appendChild(cell);
+      }
+    }
+
+    // Goals & Habits
+    function addGoalPrompt() {
+      const title = prompt('შეიყვანეთ ახალი მიზანი:');
+      if (title) {
+        goals.push({ id: Date.now(), title, progress: 10 });
+        localStorage.setItem('my_goals', JSON.stringify(goals));
+        renderGoals();
+      }
+    }
+
+    function adjustGoal(id, delta) {
+      goals = goals.map(g => g.id === id ? { ...g, progress: Math.min(100, Math.max(0, g.progress + delta)) } : g);
+      localStorage.setItem('my_goals', JSON.stringify(goals));
+      renderGoals();
+    }
+
+    function renderGoals() {
+      const container = document.getElementById('goalsList');
+      container.innerHTML = '';
+      goals.forEach(g => {
+        const div = document.createElement('div');
+        div.className = 'space-y-1';
+        div.innerHTML = `
+          <div class="flex justify-between items-center text-[11px]">
+            <span class="font-medium truncate">${g.title}</span>
+            <div class="flex items-center gap-1">
+              <button onclick="adjustGoal(${g.id}, -10)" class="w-4 h-4 rounded bg-slate-100 dark:bg-slate-700 font-bold">-</button>
+              <span class="text-slate-500 font-semibold w-7 text-center">${g.progress}%</span>
+              <button onclick="adjustGoal(${g.id}, 10)" class="w-4 h-4 rounded bg-slate-100 dark:bg-slate-700 font-bold">+</button>
+            </div>
           </div>
-          <button onclick="deleteTask(${t.id})" class="text-slate-400 hover:text-rose-500 text-xs p-1.5 transition">
-            <i class="fa-solid fa-trash-can"></i>
-          </button>
+          <div class="w-full h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div class="h-full bg-emerald-500 rounded-full" style="width: ${g.progress}%"></div>
+          </div>
         `;
         container.appendChild(div);
       });
     }
 
-    // Habits Management
     function toggleHabit(id) {
       habits = habits.map(h => h.id === id ? { ...h, done: !h.done } : h);
       localStorage.setItem('my_habits', JSON.stringify(habits));
@@ -327,72 +457,23 @@
       container.innerHTML = '';
       habits.forEach(h => {
         const div = document.createElement('div');
-        div.className = `flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60 cursor-pointer ${h.done ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200' : 'bg-slate-50 dark:bg-slate-900'}`;
+        div.className = `flex items-center justify-between p-2 rounded-xl border border-slate-100 dark:border-slate-700/60 cursor-pointer text-xs ${h.done ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200' : 'bg-slate-50 dark:bg-slate-900'}`;
         div.onclick = () => toggleHabit(h.id);
         div.innerHTML = `
-          <span class="text-xs font-medium ${h.done ? 'text-emerald-700 dark:text-emerald-300 font-semibold' : ''}">${h.title}</span>
-          <i class="${h.done ? 'fa-solid fa-circle-check text-emerald-500' : 'fa-regular fa-circle text-slate-400'} text-sm"></i>
+          <span class="${h.done ? 'text-emerald-700 dark:text-emerald-300 font-bold' : ''}">${h.title}</span>
+          <i class="${h.done ? 'fa-solid fa-circle-check text-emerald-500' : 'fa-regular fa-circle text-slate-400'}"></i>
         `;
         container.appendChild(div);
       });
     }
 
-    // Goals Management
-    function addGoalPrompt() {
-      const title = prompt('შეიყვანეთ ახალი მიზანი:');
-      if (title) {
-        goals.push({ id: Date.now(), title, progress: 10 });
-        saveGoals();
-        renderGoals();
-      }
-    }
-
-    function adjustGoal(id, delta) {
-      goals = goals.map(g => {
-        if (g.id === id) {
-          const updated = Math.min(100, Math.max(0, g.progress + delta));
-          return { ...g, progress: updated };
-        }
-        return g;
-      });
-      saveGoals();
-      renderGoals();
-    }
-
-    function saveGoals() {
-      localStorage.setItem('my_goals', JSON.stringify(goals));
-    }
-
-    function renderGoals() {
-      const container = document.getElementById('goalsList');
-      container.innerHTML = '';
-      goals.forEach(g => {
-        const div = document.createElement('div');
-        div.className = 'space-y-1.5';
-        div.innerHTML = `
-          <div class="flex justify-between items-center text-xs">
-            <span class="font-medium">${g.title}</span>
-            <div class="flex items-center gap-1.5">
-              <button onclick="adjustGoal(${g.id}, -10)" class="w-5 h-5 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-xs font-bold">-</button>
-              <span class="text-slate-500 font-semibold w-8 text-center">${g.progress}%</span>
-              <button onclick="adjustGoal(${g.id}, 10)" class="w-5 h-5 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-xs font-bold">+</button>
-            </div>
-          </div>
-          <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: ${g.progress}%"></div>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    // Backup & Restore
+    // Export/Import
     function exportData() {
       const data = { tasks, habits, goals };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `workspace-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.download = `my-hub-backup-${new Date().toISOString().slice(0,10)}.json`;
       a.click();
     }
 
@@ -408,27 +489,26 @@
           if (imported.goals) goals = imported.goals;
           saveTasks();
           localStorage.setItem('my_habits', JSON.stringify(habits));
-          saveGoals();
-          renderTasks();
-          renderHabits();
-          renderGoals();
-          alert('მონაცემები წარმატებით განახლდა!');
-        } catch (err) {
-          alert('ფაილის წაკითხვა ვერ მოხერხდა.');
-        }
+          localStorage.setItem('my_goals', JSON.stringify(goals));
+          renderAll();
+          alert('მონაცემები განახლდა!');
+        } catch (err) {}
       };
       reader.readAsText(file);
     }
 
-    // Service Worker Registration for PWA
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
+    function renderAll() {
+      renderTasks();
+      renderCalendar();
+      renderGoals();
+      renderHabits();
     }
 
-    // Init
-    renderTasks();
-    renderHabits();
-    renderGoals();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    renderAll();
   </script>
 </body>
 </html>
