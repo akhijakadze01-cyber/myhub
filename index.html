@@ -116,7 +116,7 @@
   <!-- Main Grid Layout -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-    <!-- მარცხენა სვეტი: Quick Task & სია (5 სვეტი) -->
+    <!-- მარცხენა სვეტი: Quick Task, ძიება, სია, დასრულებულები & სანაგვე ურნა (5 სვეტი) -->
     <div class="lg:col-span-5 space-y-6">
       
       <!-- Quick Task Entry -->
@@ -153,9 +153,9 @@
         </form>
       </div>
 
-      <!-- საქმეების სია და ფილტრი -->
-      <div class="bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-700/80">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-700/60 mb-3">
+      <!-- საქმეების სია, ფილტრი და ძიება -->
+      <div class="bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-700/80 space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
           <h2 class="text-sm font-bold text-white">აქტიური საქმეები</h2>
           <div class="flex gap-1 text-[11px]">
             <button onclick="setFilter('ყველა')" class="cat-btn px-2 py-0.5 rounded font-bold bg-indigo-600/30 text-indigo-400 border border-indigo-500/30" data-f="ყველა">ყველა</button>
@@ -164,7 +164,14 @@
             <button onclick="setFilter('პირადი')" class="cat-btn px-2 py-0.5 rounded text-slate-400 hover:bg-slate-700" data-f="პირადი">პირადი</button>
           </div>
         </div>
-        <div id="taskList" class="space-y-2 max-h-[280px] overflow-y-auto custom-scroll pr-1"></div>
+
+        <!-- ძიების ველი -->
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+          <input type="text" id="taskSearchInput" oninput="handleSearchTasks(event)" placeholder="მოძებნეთ დავალება..." class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900/90 text-slate-200 placeholder-slate-500 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+
+        <div id="taskList" class="space-y-2 max-h-[260px] overflow-y-auto custom-scroll pr-1"></div>
       </div>
 
       <!-- დასრულებული საქმეების არქივი + PDF ბეჭდვა -->
@@ -180,7 +187,23 @@
             <i class="fa-solid fa-file-pdf"></i> PDF ბეჭდვა
           </button>
         </div>
-        <div id="completedList" class="space-y-1.5 max-h-[160px] overflow-y-auto custom-scroll pr-1 text-xs"></div>
+        <div id="completedList" class="space-y-1.5 max-h-[140px] overflow-y-auto custom-scroll pr-1 text-xs"></div>
+      </div>
+
+      <!-- სანაგვე ურნა (TRASH BIN) -->
+      <div class="bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-700/80">
+        <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-700/60">
+          <div class="flex items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-trash-can text-rose-400"></i> სანაგვე ურნა
+            </h2>
+            <span id="trashCount" class="text-xs font-bold text-rose-400 bg-rose-950/60 border border-rose-800/50 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <button onclick="emptyTrashBin()" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-rose-900/50 hover:bg-rose-800 text-rose-200 border border-rose-700/50 transition">
+            ურნის გასუფთავება
+          </button>
+        </div>
+        <div id="trashList" class="space-y-1.5 max-h-[140px] overflow-y-auto custom-scroll pr-1 text-xs"></div>
       </div>
 
     </div>
@@ -241,7 +264,6 @@
             <button onclick="openAddGoalModal()" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold">+ ახალი მიზანი</button>
           </div>
           
-          <!-- აქტიური მიზნების სია -->
           <div id="goalsList" class="space-y-3"></div>
 
           <!-- ჩემი მიღწევები -->
@@ -438,13 +460,11 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // მუდმივი დამახსოვრება ბრაუზერში/ტელეფონში
     setPersistence(auth, browserLocalPersistence).catch(err => console.warn("Persistence error:", err));
 
     let unsubscribeSnapshot = null;
     window.currentUser = null;
 
-    // Login / Register Form Handler
     window.handleAuthAction = async function(email, password, isRegister) {
       const errEl = document.getElementById('authError');
       errEl.classList.add('hidden');
@@ -473,7 +493,6 @@
       }
     };
 
-    // Listen to User Auth State
     onAuthStateChanged(auth, (user) => {
       const authScreen = document.getElementById('authScreen');
       const emailBadge = document.getElementById('userEmailBadge');
@@ -493,6 +512,7 @@
               birthdays: window.birthdays,
               habits: window.habits,
               goals: window.goals,
+              trash: window.trash,
               updatedAt: Date.now()
             });
           } catch (e) {
@@ -508,17 +528,19 @@
             window.birthdays = data.birthdays || [];
             window.habits = data.habits || [];
             window.goals = data.goals || [];
+            window.trash = data.trash || [];
 
             localStorage.setItem(`tasks_${user.uid}`, JSON.stringify(window.tasks));
             localStorage.setItem(`birthdays_${user.uid}`, JSON.stringify(window.birthdays));
             localStorage.setItem(`habits_${user.uid}`, JSON.stringify(window.habits));
             localStorage.setItem(`goals_${user.uid}`, JSON.stringify(window.goals));
+            localStorage.setItem(`trash_${user.uid}`, JSON.stringify(window.trash));
 
             window.renderAll();
           } else {
-            // საწყისი შაბლონი მიზნებით
             window.tasks = [];
             window.birthdays = [];
+            window.trash = [];
             window.habits = [
               { id: 1, title: 'წყლის ბალანსი (2ლ)', done: false },
               { id: 2, title: 'ვარჯიში / აქტივობა', done: false },
@@ -555,6 +577,7 @@
         window.birthdays = [];
         window.habits = [];
         window.goals = [];
+        window.trash = [];
         window.renderAll();
       }
     });
@@ -567,13 +590,14 @@
     window.birthdays = [];
     window.habits = [];
     window.goals = [];
+    window.trash = [];
 
     let currentFilter = 'ყველა';
+    let searchQuery = '';
     let calDate = new Date();
     let selectedCalendarDate = new Date().toISOString().slice(0, 10);
     let soundEnabled = localStorage.getItem('sound_enabled') !== 'false';
 
-    // Web Audio გლობალური ინსტანცია
     let audioCtx = null;
     function getAudioContext() {
       if (!audioCtx) {
@@ -685,6 +709,7 @@
         localStorage.setItem(`birthdays_${window.currentUser.uid}`, JSON.stringify(window.birthdays));
         localStorage.setItem(`habits_${window.currentUser.uid}`, JSON.stringify(window.habits));
         localStorage.setItem(`goals_${window.currentUser.uid}`, JSON.stringify(window.goals));
+        localStorage.setItem(`trash_${window.currentUser.uid}`, JSON.stringify(window.trash));
       }
       if (window.saveHubToCloud) {
         window.saveHubToCloud();
@@ -875,7 +900,9 @@
       }
     }, 10000);
 
-    // Tasks Management
+    // ==========================================
+    // TASKS & RECYCLE BIN MANAGEMENT
+    // ==========================================
     function addTask(e) {
       e.preventDefault();
       const title = document.getElementById('taskTitle').value.trim();
@@ -937,10 +964,49 @@
       renderAll();
     }
 
+    // დავალების წაშლა -> გადადის სანაგვე ურნაში (Trash)
     function deleteTask(id) {
+      const taskToDelete = window.tasks.find(t => t.id === id);
+      if (!taskToDelete) return;
+
       window.tasks = window.tasks.filter(t => t.id !== id);
+      if (!window.trash) window.trash = [];
+      window.trash.unshift({ ...taskToDelete, deletedAt: new Date().toISOString().slice(0, 10) });
+
       syncAndSave();
       renderAll();
+    }
+
+    // ურნიდან აქტიურებში დაბრუნება (Restore)
+    function restoreTaskFromTrash(id) {
+      const taskToRestore = window.trash.find(t => t.id === id);
+      if (!taskToRestore) return;
+
+      window.trash = window.trash.filter(t => t.id !== id);
+      delete taskToRestore.deletedAt;
+      window.tasks.unshift(taskToRestore);
+
+      syncAndSave();
+      renderAll();
+    }
+
+    // ურნიდან სამუდამოდ წაშლა
+    function permanentlyDeleteTask(id) {
+      if (confirm('ნამდვილად გსურთ ამ დავალების სამუდამოდ წაშლა?')) {
+        window.trash = window.trash.filter(t => t.id !== id);
+        syncAndSave();
+        renderAll();
+      }
+    }
+
+    // ურნის მთლიანად გასუფთავება
+    function emptyTrashBin() {
+      if (!window.trash || window.trash.length === 0) return;
+      if (confirm('ნამდვილად გსურთ სანაგვე ურნის მთლიანად გასუფთავება?')) {
+        window.trash = [];
+        syncAndSave();
+        renderAll();
+      }
     }
 
     function openEditModal(id) {
@@ -1004,19 +1070,36 @@
       renderTasks();
     }
 
+    function handleSearchTasks(e) {
+      searchQuery = e.target.value.toLowerCase().trim();
+      renderTasks();
+    }
+
     function renderTasks() {
       const activeList = document.getElementById('taskList');
       const compList = document.getElementById('completedList');
+      const trashListEl = document.getElementById('trashList');
+      const trashCountEl = document.getElementById('trashCount');
+
       activeList.innerHTML = '';
       compList.innerHTML = '';
+      if (trashListEl) trashListEl.innerHTML = '';
 
-      const active = window.tasks.filter(t => !t.completed && (currentFilter === 'ყველა' || t.category === currentFilter));
+      const active = window.tasks.filter(t => {
+        if (t.completed) return false;
+        const matchesCategory = (currentFilter === 'ყველა' || t.category === currentFilter);
+        const matchesSearch = !searchQuery || t.title.toLowerCase().includes(searchQuery);
+        return matchesCategory && matchesSearch;
+      });
+
       const completed = window.tasks.filter(t => t.completed);
+      const trashItems = window.trash || [];
 
       document.getElementById('completedCount').innerText = completed.length;
+      if (trashCountEl) trashCountEl.innerText = trashItems.length;
 
       if (active.length === 0) {
-        activeList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">აქტიური საქმეები არ არის</p>`;
+        activeList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">საქმეები არ მოიძებნა</p>`;
       } else {
         active.forEach(t => {
           const badgeClass = {
@@ -1048,7 +1131,7 @@
               <button onclick="openEditModal(${t.id})" class="text-slate-400 hover:text-indigo-400 text-xs p-1" title="რედაქტირება">
                 <i class="fa-solid fa-pen"></i>
               </button>
-              <button onclick="deleteTask(${t.id})" class="text-slate-400 hover:text-rose-400 text-xs p-1" title="წაშლა">
+              <button onclick="deleteTask(${t.id})" class="text-slate-400 hover:text-rose-400 text-xs p-1" title="ურნაში გადატანა">
                 <i class="fa-solid fa-trash-can"></i>
               </button>
             </div>
@@ -1069,10 +1152,37 @@
               <span class="line-through truncate">${t.title}</span>
               <span class="text-[10px] text-slate-500">(${t.completedAt || t.date || ''})</span>
             </div>
-            <button onclick="deleteTask(${t.id})" class="hover:text-rose-400 text-[10px] ml-2"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="deleteTask(${t.id})" title="ურნაში გადატანა" class="hover:text-rose-400 text-[10px] ml-2"><i class="fa-solid fa-xmark"></i></button>
           `;
           compList.appendChild(div);
         });
+      }
+
+      // ურნის ვიზუალიზაცია
+      if (trashListEl) {
+        if (trashItems.length === 0) {
+          trashListEl.innerHTML = `<p class="text-slate-500 text-center py-2">სანაგვე ურნა ცარიელია</p>`;
+        } else {
+          trashItems.forEach(t => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between py-1.5 px-2 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-400';
+            div.innerHTML = `
+              <div class="truncate">
+                <span class="line-through text-slate-400 text-xs truncate block">${t.title}</span>
+                <span class="text-[9px] text-slate-500">${t.category} • წაიშალა: ${t.deletedAt || ''}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="restoreTaskFromTrash(${t.id})" title="აქტიურებში დაბრუნება" class="text-slate-400 hover:text-emerald-400 text-xs">
+                  <i class="fa-solid fa-rotate-left"></i>
+                </button>
+                <button onclick="permanentlyDeleteTask(${t.id})" title="სამუდამოდ წაშლა" class="text-slate-500 hover:text-rose-400 text-xs">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            `;
+            trashListEl.appendChild(div);
+          });
+        }
       }
     }
 
@@ -1312,7 +1422,7 @@
     }
 
     // ==========================================
-    // GOALS & CHECKLIST ENGINE (მიზნების სისტემა)
+    // GOALS & CHECKLIST ENGINE
     // ==========================================
     let expandedGoalId = null;
 
@@ -1347,10 +1457,8 @@
       if (!title) return;
 
       if (id) {
-        // რედაქტირება
         window.goals = window.goals.map(g => g.id === Number(id) ? { ...g, title, deadline: deadline || null } : g);
       } else {
-        // ახალი მიზანი
         window.goals.push({
           id: Date.now(),
           title,
@@ -1372,7 +1480,6 @@
       renderGoals();
     }
 
-    // ქვე-დავალების დამატება (Checklist Step)
     function addGoalStepPrompt(goalId) {
       const stepTitle = prompt('ჩაწერეთ კონკრეტული ნაბიჯი / ქვე-დავალება (მაგ: თავი 1, ავანსის გადახდა):');
       if (!stepTitle) return;
@@ -1391,11 +1498,15 @@
       renderGoals();
     }
 
-    // ქვე-დავალების მონიშვნა
     function toggleGoalStep(goalId, stepId) {
       window.goals = window.goals.map(g => {
         if (g.id === goalId) {
-          const steps = (g.steps || []).map(s => s.id === stepId ? { ...s, done: !s.done } : s);
+          const steps = (g.steps || []).map(s => {
+            if (s.id === stepId) {
+              return { ...s, done: !s.done };
+            }
+            return s;
+          });
           return recalcGoalProgress({ ...g, steps });
         }
         return g;
@@ -1405,7 +1516,6 @@
       renderGoals();
     }
 
-    // ქვე-დავალების წაშლა
     function deleteGoalStep(goalId, stepId) {
       window.goals = window.goals.map(g => {
         if (g.id === goalId) {
@@ -1419,7 +1529,6 @@
       renderGoals();
     }
 
-    // პროგრესის ავტომატური გადათვლა
     function recalcGoalProgress(goal) {
       if (!goal.steps || goal.steps.length === 0) return goal;
       const doneCount = goal.steps.filter(s => s.done).length;
@@ -1446,7 +1555,6 @@
       return { ...goal, progress };
     }
 
-    // ხელით პროგრესის მართვა (+/- 10%)
     function adjustGoal(id, delta) {
       window.goals = window.goals.map(g => {
         if (g.id === id) {
@@ -1465,7 +1573,6 @@
       renderGoals();
     }
 
-    // მიზნის პირდაპირი დასრულება („პტიჩკა“)
     function completeGoal(id) {
       window.goals = window.goals.map(g => {
         if (g.id === id) {
@@ -1486,7 +1593,6 @@
       renderGoals();
     }
 
-    // მიღწევებიდან მიზნის უკან დაბრუნება
     function uncompleteGoal(id) {
       window.goals = window.goals.map(g => {
         if (g.id === id) {
@@ -1556,16 +1662,27 @@
               <div class="pt-2 mt-2 border-t border-slate-700/40 space-y-1.5 text-xs">
                 <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold mb-1">
                   <span>ეტაპები / ქვე-დავალებები (${steps.filter(s=>s.done).length}/${steps.length})</span>
-                  <button onclick="addGoalStepPrompt(${g.id})" class="text-indigo-400 hover:text-indigo-300">+ ნაბიჯის დამატება</button>
+                  <button onclick="addGoalStepPrompt(${g.id})" class="text-indigo-400 hover:text-indigo-300 font-bold">+ ნაბიჯის დამატება</button>
                 </div>
                 ${steps.length === 0 ? `<p class="text-[10px] text-slate-500 italic py-0.5">ნაბიჯები ჯერ არ გაქვთ დამატებული. დააჭირეთ „+ ნაბიჯის დამატებას“.</p>` : ''}
                 ${steps.map(s => `
-                  <div class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-800/80 border border-slate-700/40">
-                    <label class="flex items-center gap-2 truncate cursor-pointer select-none">
-                      <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleGoalStep(${g.id}, ${s.id})" class="rounded text-indigo-600 focus:ring-0 cursor-pointer">
-                      <span class="${s.done ? 'line-through text-slate-500' : 'text-slate-200'} text-[11px] truncate">${s.title}</span>
-                    </label>
-                    <button onclick="deleteGoalStep(${g.id}, ${s.id})" class="text-slate-500 hover:text-rose-400 text-[10px] ml-2"><i class="fa-solid fa-xmark"></i></button>
+                  <div onclick="toggleGoalStep(${g.id}, ${s.id})" 
+                       class="flex items-center justify-between py-1.5 px-2.5 rounded-lg border cursor-pointer select-none transition ${
+                         s.done 
+                           ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-300' 
+                           : 'bg-slate-800/80 border-slate-700/50 text-slate-200 hover:border-slate-600'
+                       }">
+                    <div class="flex items-center gap-2.5 truncate">
+                      <div class="w-4 h-4 rounded flex items-center justify-center border transition ${
+                        s.done ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-slate-500 bg-slate-900/60'
+                      }">
+                        ${s.done ? '<i class="fa-solid fa-check text-[10px]"></i>' : ''}
+                      </div>
+                      <span class="text-xs font-medium truncate ${s.done ? 'line-through opacity-75' : ''}">${s.title}</span>
+                    </div>
+                    <button onclick="event.stopPropagation(); deleteGoalStep(${g.id}, ${s.id})" class="text-slate-500 hover:text-rose-400 text-xs p-1" title="წაშლა">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
                   </div>
                 `).join('')}
               </div>
@@ -1608,7 +1725,6 @@
         });
       }
 
-      // მიღწევების არქივი
       if (achieveList) {
         if (completedGoals.length === 0) {
           achieveList.innerHTML = `<p class="text-xs text-slate-500 py-1">ჯერ არ გაქვთ მიღწეული მიზნები.</p>`;
@@ -1667,7 +1783,7 @@
 
     // Export / Import
     function exportData() {
-      const data = { tasks: window.tasks, birthdays: window.birthdays, habits: window.habits, goals: window.goals };
+      const data = { tasks: window.tasks, birthdays: window.birthdays, habits: window.habits, goals: window.goals, trash: window.trash };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1686,6 +1802,7 @@
           if (imported.birthdays) window.birthdays = imported.birthdays;
           if (imported.habits) window.habits = imported.habits;
           if (imported.goals) window.goals = imported.goals;
+          if (imported.trash) window.trash = imported.trash;
           syncAndSave();
           renderAll();
           alert('მონაცემები განახლდა და Cloud-ში შეინახა!');
