@@ -95,7 +95,6 @@
     </div>
     
     <div class="flex items-center space-x-3">
-      <!-- მომხმარებლის პროფილი & Logout -->
       <div class="flex items-center gap-2 bg-slate-900/80 border border-slate-700/80 px-3 py-1.5 rounded-xl text-xs">
         <i class="fa-regular fa-user text-indigo-400"></i>
         <span id="userEmailBadge" class="text-slate-300 font-medium truncate max-w-[130px] sm:max-w-xs"></span>
@@ -208,7 +207,7 @@
 
     </div>
 
-    <!-- მარჯვენა სვეტი: კალენდარი, დაბადების დღეები, მიზნები, ჩვევები (7 სვეტი) -->
+    <!-- მარჯვენა სვეტი: კალენდარი, დაბადების დღეები, მიზნები & საყიდლების სია (7 სვეტი) -->
     <div class="lg:col-span-7 space-y-6">
 
       <!-- თვიური კალენდარი -->
@@ -252,7 +251,7 @@
         <div id="birthdayList" class="space-y-2"></div>
       </div>
 
-      <!-- მიზნები (Checklist-ით და დედლაინით) და ჩვევები -->
+      <!-- მიზნები და საყიდლების სია -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
         <!-- მიზნები და მიღწევები -->
@@ -279,15 +278,38 @@
           </div>
         </div>
 
-        <!-- ყოველდღიური ჩვევები -->
-        <div class="bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-700/80">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-heart-pulse text-rose-400"></i> დღის ჩვევები
-            </h3>
-            <button onclick="addHabitPrompt()" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold">+ ახალი</button>
+        <!-- საყიდლების სიის დაფა (SHOPPING LIST) -->
+        <div class="bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-700/80 space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
+            <div class="flex items-center gap-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-cart-shopping"></i> საყიდლების სია
+              </h3>
+              <span id="shoppingRemainingCount" class="text-[10px] px-2 py-0.2 rounded-full bg-emerald-950 border border-emerald-600/50 text-emerald-300 font-bold">0</span>
+            </div>
+            <button onclick="clearBoughtShoppingItems()" title="ნაყიდების წაშლა" class="text-[10px] text-slate-400 hover:text-rose-400 transition font-medium">
+              ნაყიდების წაშლა
+            </button>
           </div>
-          <div id="habitsList" class="space-y-2"></div>
+
+          <!-- საყიდლის დამატების სწრაფი ფორმა -->
+          <form onsubmit="addShoppingItem(event)" class="space-y-2">
+            <div class="flex gap-1.5">
+              <input type="text" id="shoppingInput" required placeholder="პროდუქტი..." class="flex-1 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900/90 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500">
+              <select id="shoppingCategory" class="px-2 py-1.5 rounded-xl border border-slate-700 bg-slate-900 text-slate-200 text-xs focus:outline-none">
+                <option value="🍎 სურსათი">🍎 სურსათი</option>
+                <option value="🧴 საოჯახო">🧴 საოჯახო</option>
+                <option value="💊 აფთიაქი">💊 აფთიაქი</option>
+                <option value="🛍️ სხვა">🛍️ სხვა</option>
+              </select>
+              <button type="submit" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+          </form>
+
+          <!-- საყიდლების ჩამონათვალი -->
+          <div id="shoppingList" class="space-y-1.5 max-h-[300px] overflow-y-auto custom-scroll pr-1"></div>
         </div>
 
       </div>
@@ -510,9 +532,9 @@
             await setDoc(userDocRef, {
               tasks: window.tasks,
               birthdays: window.birthdays,
-              habits: window.habits,
               goals: window.goals,
               trash: window.trash,
+              shopping: window.shopping,
               updatedAt: Date.now()
             });
           } catch (e) {
@@ -526,25 +548,24 @@
             const data = snap.data();
             window.tasks = data.tasks || [];
             window.birthdays = data.birthdays || [];
-            window.habits = data.habits || [];
             window.goals = data.goals || [];
             window.trash = data.trash || [];
+            window.shopping = data.shopping || [];
 
             localStorage.setItem(`tasks_${user.uid}`, JSON.stringify(window.tasks));
             localStorage.setItem(`birthdays_${user.uid}`, JSON.stringify(window.birthdays));
-            localStorage.setItem(`habits_${user.uid}`, JSON.stringify(window.habits));
             localStorage.setItem(`goals_${user.uid}`, JSON.stringify(window.goals));
             localStorage.setItem(`trash_${user.uid}`, JSON.stringify(window.trash));
+            localStorage.setItem(`shopping_${user.uid}`, JSON.stringify(window.shopping));
 
             window.renderAll();
           } else {
             window.tasks = [];
             window.birthdays = [];
             window.trash = [];
-            window.habits = [
-              { id: 1, title: 'წყლის ბალანსი (2ლ)', done: false },
-              { id: 2, title: 'ვარჯიში / აქტივობა', done: false },
-              { id: 3, title: 'კითხვა / განვითარება', done: false }
+            window.shopping = [
+              { id: 1, title: 'ყველი', category: '🍎 სურსათი', done: false },
+              { id: 2, title: 'ყავა', category: '🍎 სურსათი', done: false }
             ];
             window.goals = [
               { id: 1, title: 'თვიური მიზნების შესრულება', deadline: '2026-12-31', progress: 30, completed: false, steps: [] },
@@ -575,9 +596,9 @@
         authScreen.classList.remove('hidden');
         window.tasks = [];
         window.birthdays = [];
-        window.habits = [];
         window.goals = [];
         window.trash = [];
+        window.shopping = [];
         window.renderAll();
       }
     });
@@ -588,9 +609,9 @@
     let isRegisterMode = false;
     window.tasks = [];
     window.birthdays = [];
-    window.habits = [];
     window.goals = [];
     window.trash = [];
+    window.shopping = [];
 
     let currentFilter = 'ყველა';
     let searchQuery = '';
@@ -707,9 +728,9 @@
       if (window.currentUser) {
         localStorage.setItem(`tasks_${window.currentUser.uid}`, JSON.stringify(window.tasks));
         localStorage.setItem(`birthdays_${window.currentUser.uid}`, JSON.stringify(window.birthdays));
-        localStorage.setItem(`habits_${window.currentUser.uid}`, JSON.stringify(window.habits));
         localStorage.setItem(`goals_${window.currentUser.uid}`, JSON.stringify(window.goals));
         localStorage.setItem(`trash_${window.currentUser.uid}`, JSON.stringify(window.trash));
+        localStorage.setItem(`shopping_${window.currentUser.uid}`, JSON.stringify(window.shopping));
       }
       if (window.saveHubToCloud) {
         window.saveHubToCloud();
@@ -964,7 +985,6 @@
       renderAll();
     }
 
-    // დავალების წაშლა -> გადადის სანაგვე ურნაში (Trash)
     function deleteTask(id) {
       const taskToDelete = window.tasks.find(t => t.id === id);
       if (!taskToDelete) return;
@@ -977,7 +997,6 @@
       renderAll();
     }
 
-    // ურნიდან აქტიურებში დაბრუნება (Restore)
     function restoreTaskFromTrash(id) {
       const taskToRestore = window.trash.find(t => t.id === id);
       if (!taskToRestore) return;
@@ -990,7 +1009,6 @@
       renderAll();
     }
 
-    // ურნიდან სამუდამოდ წაშლა
     function permanentlyDeleteTask(id) {
       if (confirm('ნამდვილად გსურთ ამ დავალების სამუდამოდ წაშლა?')) {
         window.trash = window.trash.filter(t => t.id !== id);
@@ -999,7 +1017,6 @@
       }
     }
 
-    // ურნის მთლიანად გასუფთავება
     function emptyTrashBin() {
       if (!window.trash || window.trash.length === 0) return;
       if (confirm('ნამდვილად გსურთ სანაგვე ურნის მთლიანად გასუფთავება?')) {
@@ -1158,7 +1175,6 @@
         });
       }
 
-      // ურნის ვიზუალიზაცია
       if (trashListEl) {
         if (trashItems.length === 0) {
           trashListEl.innerHTML = `<p class="text-slate-500 text-center py-2">სანაგვე ურნა ცარიელია</p>`;
@@ -1481,7 +1497,7 @@
     }
 
     function addGoalStepPrompt(goalId) {
-      const stepTitle = prompt('ჩაწერეთ კონკრეტული ნაბიჯი / ქვე-დავალება (მაგ: თავი 1, ავანსის გადახდა):');
+      const stepTitle = prompt('ჩაწერეთ კონკრეტული ნაბიჯი / ქვე-დავალება:');
       if (!stepTitle) return;
 
       window.goals = window.goals.map(g => {
@@ -1750,32 +1766,95 @@
       }
     }
 
-    // Habits
-    function addHabitPrompt() {
-      const title = prompt('შეიყვანეთ ახალი ჩვევა:');
-      if (title) {
-        window.habits.push({ id: Date.now(), title, done: false });
+    // ==========================================
+    // SHOPPING LIST ENGINE (საყიდლების სია)
+    // ==========================================
+    function addShoppingItem(e) {
+      e.preventDefault();
+      const input = document.getElementById('shoppingInput');
+      const catSelect = document.getElementById('shoppingCategory');
+      const title = input.value.trim();
+      const category = catSelect.value;
+
+      if (!title) return;
+
+      if (!window.shopping) window.shopping = [];
+      window.shopping.unshift({
+        id: Date.now(),
+        title,
+        category,
+        done: false
+      });
+
+      input.value = '';
+      syncAndSave();
+      renderShopping();
+    }
+
+    function toggleShoppingItem(id) {
+      window.shopping = window.shopping.map(item => {
+        if (item.id === id) {
+          return { ...item, done: !item.done };
+        }
+        return item;
+      });
+      syncAndSave();
+      renderShopping();
+    }
+
+    function deleteShoppingItem(id) {
+      window.shopping = window.shopping.filter(item => item.id !== id);
+      syncAndSave();
+      renderShopping();
+    }
+
+    function clearBoughtShoppingItems() {
+      const boughtCount = (window.shopping || []).filter(item => item.done).length;
+      if (boughtCount === 0) return;
+      if (confirm('წაიშალოს ყველა უკვე ნაყიდი პროდუქტი?')) {
+        window.shopping = window.shopping.filter(item => !item.done);
         syncAndSave();
-        renderHabits();
+        renderShopping();
       }
     }
 
-    function toggleHabit(id) {
-      window.habits = window.habits.map(h => h.id === id ? { ...h, done: !h.done } : h);
-      syncAndSave();
-      renderHabits();
-    }
+    function renderShopping() {
+      const container = document.getElementById('shoppingList');
+      const countEl = document.getElementById('shoppingRemainingCount');
+      if (!container) return;
 
-    function renderHabits() {
-      const container = document.getElementById('habitsList');
+      const items = window.shopping || [];
+      const remaining = items.filter(i => !i.done).length;
+      if (countEl) countEl.innerText = remaining;
+
       container.innerHTML = '';
-      window.habits.forEach(h => {
+
+      if (items.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">საყიდლების სია ცარიელია</p>`;
+        return;
+      }
+
+      // დაულაგებელი ჯერ დაუხურავი, შემდეგ ნაყიდი პროდუქტები
+      const sorted = [...items].sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
+
+      sorted.forEach(item => {
         const div = document.createElement('div');
-        div.className = `flex items-center justify-between p-2 rounded-xl border border-slate-700/60 cursor-pointer text-xs transition ${h.done ? 'bg-emerald-950/30 border-emerald-700/60 text-emerald-300' : 'bg-slate-900/70 text-slate-300'}`;
-        div.onclick = () => toggleHabit(h.id);
+        div.className = `flex items-center justify-between p-2 rounded-xl border transition ${
+          item.done ? 'bg-slate-900/40 border-slate-800 text-slate-500' : 'bg-slate-900/70 border-slate-700/60 text-slate-200 hover:border-slate-600'
+        }`;
         div.innerHTML = `
-          <span class="${h.done ? 'font-bold' : ''}">${h.title}</span>
-          <i class="${h.done ? 'fa-solid fa-circle-check text-emerald-400' : 'fa-regular fa-circle text-slate-500'}"></i>
+          <div class="flex items-center gap-2 truncate cursor-pointer select-none flex-1" onclick="toggleShoppingItem(${item.id})">
+            <div class="w-4 h-4 rounded flex items-center justify-center border transition shrink-0 ${
+              item.done ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-slate-500 bg-slate-900/80'
+            }">
+              ${item.done ? '<i class="fa-solid fa-check text-[10px]"></i>' : ''}
+            </div>
+            <span class="text-xs truncate ${item.done ? 'line-through text-slate-500' : 'font-medium'}">${item.title}</span>
+            <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800/80 text-slate-400 shrink-0 ml-auto mr-2">${item.category}</span>
+          </div>
+          <button onclick="deleteShoppingItem(${item.id})" class="text-slate-500 hover:text-rose-400 text-xs p-1 shrink-0" title="წაშლა">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         `;
         container.appendChild(div);
       });
@@ -1783,7 +1862,7 @@
 
     // Export / Import
     function exportData() {
-      const data = { tasks: window.tasks, birthdays: window.birthdays, habits: window.habits, goals: window.goals, trash: window.trash };
+      const data = { tasks: window.tasks, birthdays: window.birthdays, goals: window.goals, trash: window.trash, shopping: window.shopping };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1800,9 +1879,9 @@
           const imported = JSON.parse(event.target.result);
           if (imported.tasks) window.tasks = imported.tasks;
           if (imported.birthdays) window.birthdays = imported.birthdays;
-          if (imported.habits) window.habits = imported.habits;
           if (imported.goals) window.goals = imported.goals;
           if (imported.trash) window.trash = imported.trash;
+          if (imported.shopping) window.shopping = imported.shopping;
           syncAndSave();
           renderAll();
           alert('მონაცემები განახლდა და Cloud-ში შეინახა!');
@@ -1816,7 +1895,7 @@
       renderBirthdays();
       renderCalendar();
       renderGoals();
-      renderHabits();
+      renderShopping();
       updateNotifyBtnUI();
     };
 
