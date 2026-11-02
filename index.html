@@ -19,9 +19,20 @@
     .custom-scroll::-webkit-scrollbar { width: 5px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     .light .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; }
+    
+    @keyframes slideInDown {
+      from { transform: translateY(-120%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-toast {
+      animation: slideInDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+  <!-- IN-APP PUSH NOTIFICATION TOAST CONTAINER -->
+  <div id="toastContainer" class="fixed top-4 right-4 left-4 sm:left-auto sm:w-96 z-50 pointer-events-none space-y-2"></div>
 
   <!-- AUTH OVERLAY (შესვლა / რეგისტრაცია) -->
   <div id="authScreen" class="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
@@ -356,6 +367,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
       getAuth, 
+      setPersistence, 
+      browserLocalPersistence, 
       onAuthStateChanged, 
       signInWithEmailAndPassword, 
       createUserWithEmailAndPassword, 
@@ -381,6 +394,9 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+    // მუდმივი დამახსოვრება ბრაუზერში/ტელეფონში (არასდროს გამოვა თავისით)
+    setPersistence(auth, browserLocalPersistence).catch(err => console.warn("Persistence error:", err));
 
     let unsubscribeSnapshot = null;
     window.currentUser = null;
@@ -510,6 +526,34 @@
     let calDate = new Date();
     let selectedCalendarDate = new Date().toISOString().slice(0, 10);
     let soundEnabled = localStorage.getItem('sound_enabled') === 'true';
+
+    // In-App Push Toast შეტყობინების გენერატორი
+    function showInAppPush(title, message, iconHtml = '🔔') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto bg-slate-800/95 border border-indigo-500/50 text-white p-3.5 rounded-2xl shadow-2xl backdrop-blur-md flex items-start gap-3 animate-toast transition-all duration-300';
+      toast.innerHTML = `
+        <div class="w-9 h-9 rounded-xl bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 flex items-center justify-center text-base shrink-0">
+          ${iconHtml}
+        </div>
+        <div class="flex-1 truncate">
+          <h4 class="text-xs font-bold text-slate-100 flex items-center justify-between">
+            <span>${title}</span>
+            <span class="text-[10px] font-normal text-slate-400">${new Date().toLocaleTimeString('ka-GE', { hour: '2-digit', minute: '2-digit' })}</span>
+          </h4>
+          <p class="text-[11px] text-slate-300 mt-0.5 whitespace-normal leading-snug">${message}</p>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-200 text-xs p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        setTimeout(() => toast.remove(), 350);
+      }, 7000);
+    }
 
     // Auth Switch Mode
     function toggleAuthMode() {
@@ -716,7 +760,7 @@
       });
     }
 
-    // Reminders & Birthday Alerter
+    // Reminders & Birthday Alerter with In-App Push
     setInterval(() => {
       const d = new Date();
       const currentHoursMin = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -729,6 +773,10 @@
           t.alerted = true;
           syncAndSave();
           playChime();
+
+          const taskIcon = t.repeat === 'daily' ? '☀️' : (t.repeat === 'monthly' ? '📅' : '🔔');
+          showInAppPush(`შეხსენება: ${t.category}`, `${t.title}`, taskIcon);
+
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification(`შეხსენება: ${t.category}`, {
               body: `${t.title} ${t.repeat && t.repeat !== 'none' ? '🔁' : ''}`,
@@ -744,6 +792,7 @@
         window.birthdays.forEach(b => {
           if (b.date.endsWith(todayMonthDay)) {
             playChime();
+            showInAppPush(`🎉 დღეს დაბადების დღეა!`, `გილოცავთ! დღეს ${b.name}-ის დაბადების დღეა 🎂`, '🎂');
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification(`🎉 დაბადების დღე!`, {
                 body: `დღეს ${b.name}-ის დაბადების დღეა!`,
