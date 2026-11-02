@@ -129,6 +129,7 @@
           <div class="grid grid-cols-2 gap-2 text-xs">
             <select id="taskRepeat" class="px-2.5 py-2 rounded-lg border border-slate-700 bg-slate-900/90 text-slate-200 focus:outline-none">
               <option value="none">🔁 ერთჯერადი</option>
+              <option value="daily">☀️ ყოველდღიური</option>
               <option value="monthly">📅 ყოველთვიური</option>
               <option value="yearly">🎆 ყოველწლიური</option>
             </select>
@@ -288,6 +289,7 @@
             <label class="block font-medium text-slate-300 mb-1">პერიოდულობა:</label>
             <select id="editTaskRepeat" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-slate-100 focus:outline-none">
               <option value="none">🔁 ერთჯერადი</option>
+              <option value="daily">☀️ ყოველდღიური</option>
               <option value="monthly">📅 ყოველთვიური</option>
               <option value="yearly">🎆 ყოველწლიური</option>
             </select>
@@ -423,7 +425,7 @@
         emailBadge.innerText = user.email;
         authScreen.classList.add('hidden');
 
-        // თითოეულ მომხმარებელს აქვს თავისი იზოლირებული დოკუმენტი Firestore-ში:
+        // თითოეულ მომხმარებელს აქვს თავისი იზოლირებული დოკუმენტი Firestore-ში
         const userDocRef = doc(db, "users", user.uid);
 
         window.saveHubToCloud = async function() {
@@ -723,7 +725,7 @@
 
       // Check Tasks
       window.tasks.forEach(t => {
-        if (!t.completed && t.time === currentHoursMin && (!t.date || t.date === todayIso) && !t.alerted) {
+        if (!t.completed && t.time === currentHoursMin && (!t.date || t.date === todayIso || (t.repeat === 'daily' && todayIso >= t.date)) && !t.alerted) {
           t.alerted = true;
           syncAndSave();
           playChime();
@@ -788,7 +790,9 @@
         if (t.id === id) {
           if (!t.completed && t.repeat && t.repeat !== 'none' && t.date) {
             const nextDate = new Date(t.date);
-            if (t.repeat === 'monthly') {
+            if (t.repeat === 'daily') {
+              nextDate.setDate(nextDate.getDate() + 1);
+            } else if (t.repeat === 'monthly') {
               nextDate.setMonth(nextDate.getMonth() + 1);
             } else if (t.repeat === 'yearly') {
               nextDate.setFullYear(nextDate.getFullYear() + 1);
@@ -902,8 +906,9 @@
             'პირადი': 'bg-purple-900/40 text-purple-300 border border-purple-700/50'
           }[t.category] || 'bg-slate-700 text-slate-300';
 
-          const repeatText = t.repeat === 'monthly' ? '<span class="text-[9px] px-1 py-0.2 rounded bg-amber-950/50 border border-amber-700/40 text-amber-300">📅 ყოველთვიური</span>' : 
-                             (t.repeat === 'yearly' ? '<span class="text-[9px] px-1 py-0.2 rounded bg-pink-950/50 border border-pink-700/40 text-pink-300">🎆 ყოველწლიური</span>' : '');
+          const repeatText = t.repeat === 'daily' ? '<span class="text-[9px] px-1 py-0.2 rounded bg-cyan-950/50 border border-cyan-700/40 text-cyan-300">☀️ ყოველდღიური</span>' :
+                             (t.repeat === 'monthly' ? '<span class="text-[9px] px-1 py-0.2 rounded bg-amber-950/50 border border-amber-700/40 text-amber-300">📅 ყოველთვიური</span>' : 
+                             (t.repeat === 'yearly' ? '<span class="text-[9px] px-1 py-0.2 rounded bg-pink-950/50 border border-pink-700/40 text-pink-300">🎆 ყოველწლიური</span>' : ''));
 
           const div = document.createElement('div');
           div.className = 'flex items-center justify-between p-2.5 rounded-xl border border-slate-700/60 bg-slate-900/60';
@@ -1073,6 +1078,7 @@
       const dayTasks = window.tasks.filter(t => {
         if (!t.date) return false;
         if (t.date === dateStr) return true;
+        if (t.repeat === 'daily' && dateStr >= t.date) return true;
         const tParts = t.date.split('-');
         const tDay = parseInt(tParts[2], 10);
         const tMonth = parseInt(tParts[1], 10);
@@ -1101,11 +1107,12 @@
         dayTasks.forEach(t => {
           const div = document.createElement('div');
           div.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-700/50';
+          const repLabel = t.repeat === 'daily' ? 'ყოველდღიური' : (t.repeat === 'monthly' ? 'თვიური' : 'წლიური');
           div.innerHTML = `
             <div class="flex items-center gap-2 truncate">
               <span class="w-2 h-2 rounded-full ${t.completed ? 'bg-emerald-500' : 'bg-amber-400'}"></span>
               <span class="${t.completed ? 'line-through text-slate-500' : 'text-slate-200'} font-medium truncate">${t.title}</span>
-              ${t.repeat && t.repeat !== 'none' ? `<span class="text-[9px] text-amber-300">(${t.repeat === 'monthly' ? 'თვიური' : 'წლიური'})</span>` : ''}
+              ${t.repeat && t.repeat !== 'none' ? `<span class="text-[9px] text-amber-300">(${repLabel})</span>` : ''}
               ${t.time ? `<span class="text-[10px] text-slate-400">(${t.time})</span>` : ''}
             </div>
             <span class="text-[10px] text-slate-400">${t.category}</span>
@@ -1144,6 +1151,7 @@
         const dayTasks = window.tasks.filter(t => {
           if (!t.date) return false;
           if (t.date === curDateStr) return true;
+          if (t.repeat === 'daily' && curDateStr >= t.date) return true;
           const tParts = t.date.split('-');
           const tDay = parseInt(tParts[2], 10);
           const tMonth = parseInt(tParts[1], 10);
