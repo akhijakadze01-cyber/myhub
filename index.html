@@ -229,18 +229,32 @@
         <div id="birthdayList" class="space-y-2"></div>
       </div>
 
-      <!-- მიზნები და ჩვევები -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- მიზნები (Checklist-ით და დედლაინით) და ჩვევები -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
-        <!-- მიზნები -->
-        <div class="bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-700/80">
-          <div class="flex items-center justify-between mb-3">
+        <!-- მიზნები და მიღწევები -->
+        <div class="bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-700/80 space-y-4">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <i class="fa-solid fa-bullseye text-indigo-400"></i> მიზნები
             </h3>
-            <button onclick="addGoalPrompt()" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold">+ ახალი</button>
+            <button onclick="openAddGoalModal()" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold">+ ახალი მიზანი</button>
           </div>
+          
+          <!-- აქტიური მიზნების სია -->
           <div id="goalsList" class="space-y-3"></div>
+
+          <!-- ჩემი მიღწევები -->
+          <div class="pt-3 border-t border-slate-700/60">
+            <div class="flex items-center justify-between cursor-pointer select-none py-1" onclick="toggleAchievements()">
+              <h4 class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-trophy text-amber-400"></i> ჩემი მიღწევები
+                <span id="achievementsCount" class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-950 border border-amber-600/50 text-amber-300 font-bold">0</span>
+              </h4>
+              <i id="achieveChevron" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+            </div>
+            <div id="achievementsList" class="hidden space-y-2 mt-2 max-h-48 overflow-y-auto custom-scroll pr-1"></div>
+          </div>
         </div>
 
         <!-- ყოველდღიური ჩვევები -->
@@ -271,7 +285,36 @@
     </div>
   </main>
 
-  <!-- Edit Modal -->
+  <!-- Goal Creation & Edit Modal -->
+  <div id="goalModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-700 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+        <h3 id="goalModalTitle" class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-bullseye text-indigo-400"></i> მიზნის დამატება / რედაქტირება
+        </h3>
+        <button onclick="closeGoalModal()" class="text-slate-400 hover:text-white text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form onsubmit="saveGoalModal(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="modalGoalId">
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">მიზნის დასახელება:</label>
+          <input type="text" id="modalGoalTitle" required placeholder="მაგ: acca f2, მანქანის შეძენა..." class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">სამიზნე დედლაინი (თარიღი):</label>
+          <input type="date" id="modalGoalDeadline" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="pt-3 flex gap-2 justify-end">
+          <button type="button" onclick="closeGoalModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200">გაუქმება</button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow">შენახვა</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Task Modal -->
   <div id="editModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
     <div class="bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-700 space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-700">
@@ -395,7 +438,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // მუდმივი დამახსოვრება ბრაუზერში/ტელეფონში (არასდროს გამოვა თავისით)
+    // მუდმივი დამახსოვრება ბრაუზერში/ტელეფონში
     setPersistence(auth, browserLocalPersistence).catch(err => console.warn("Persistence error:", err));
 
     let unsubscribeSnapshot = null;
@@ -441,7 +484,6 @@
         emailBadge.innerText = user.email;
         authScreen.classList.add('hidden');
 
-        // თითოეულ მომხმარებელს აქვს თავისი იზოლირებული დოკუმენტი Firestore-ში
         const userDocRef = doc(db, "users", user.uid);
 
         window.saveHubToCloud = async function() {
@@ -458,7 +500,6 @@
           }
         };
 
-        // Realtime Listener თითოეული მომხმარებლისთვის
         if (unsubscribeSnapshot) unsubscribeSnapshot();
         unsubscribeSnapshot = onSnapshot(userDocRef, (snap) => {
           if (snap.exists()) {
@@ -475,7 +516,7 @@
 
             window.renderAll();
           } else {
-            // ახალი მომხმარებლის პირველი შესვლა: საწყისი შაბლონი
+            // საწყისი შაბლონი მიზნებით
             window.tasks = [];
             window.birthdays = [];
             window.habits = [
@@ -484,7 +525,12 @@
               { id: 3, title: 'კითხვა / განვითარება', done: false }
             ];
             window.goals = [
-              { id: 1, title: 'თვიური მიზნების შესრულება', progress: 30 }
+              { id: 1, title: 'თვიური მიზნების შესრულება', deadline: '2026-12-31', progress: 30, completed: false, steps: [] },
+              { id: 2, title: 'სახლი', deadline: '2027-06-01', progress: 10, completed: false, steps: [] },
+              { id: 3, title: 'სამსახური', deadline: '2026-12-31', progress: 10, completed: false, steps: [] },
+              { id: 4, title: 'მანქანა', deadline: '2027-01-01', progress: 10, completed: false, steps: [] },
+              { id: 5, title: 'acca f2', deadline: '2026-12-15', progress: 10, completed: false, steps: [] },
+              { id: 6, title: 'acca f4', deadline: '2027-03-01', progress: 10, completed: false, steps: [] }
             ];
             window.saveHubToCloud();
             window.renderAll();
@@ -525,7 +571,7 @@
     let currentFilter = 'ყველა';
     let calDate = new Date();
     let selectedCalendarDate = new Date().toISOString().slice(0, 10);
-    let soundEnabled = localStorage.getItem('sound_enabled') !== 'false'; // ნაგულისხმევად ჩართულია
+    let soundEnabled = localStorage.getItem('sound_enabled') !== 'false';
 
     // Web Audio გლობალური ინსტანცია
     let audioCtx = null;
@@ -539,22 +585,19 @@
       return audioCtx;
     }
 
-    // ეკრანზე პირველივე შეხებისას აუდიოს განბლოკვა (Mobile Autoplay Policy-ს მოსახსნელად)
     window.addEventListener('touchstart', () => getAudioContext(), { once: true });
     window.addEventListener('click', () => getAudioContext(), { once: true });
 
-    // შეხსენების სუფთა და მკვეთრი ორტონიანი ზარი (Ding-Dong)
     function playChime() {
       if (!soundEnabled) return;
       try {
         const ctx = getAudioContext();
         const t = ctx.currentTime;
 
-        // პირველი ტონი (Ding)
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
         osc1.type = 'triangle';
-        osc1.frequency.setValueAtTime(740, t); // F#5
+        osc1.frequency.setValueAtTime(740, t);
         gain1.gain.setValueAtTime(0.4, t);
         gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
         osc1.connect(gain1);
@@ -562,11 +605,10 @@
         osc1.start(t);
         osc1.stop(t + 0.6);
 
-        // მეორე, უფრო მაღალი ტონი (Dong)
         const osc2 = ctx.createOscillator();
         const gain2 = ctx.createGain();
         osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(880, t + 0.15); // A5
+        osc2.frequency.setValueAtTime(880, t + 0.15);
         gain2.gain.setValueAtTime(0, t);
         gain2.gain.setValueAtTime(0.5, t + 0.15);
         gain2.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
@@ -575,16 +617,12 @@
         osc2.start(t + 0.15);
         osc2.stop(t + 1.2);
 
-        // ტელეფონის ვიბრაცია (თუ მხარდაჭერილია)
         if (navigator.vibrate) {
           navigator.vibrate([200, 100, 200]);
         }
-      } catch (e) {
-        console.warn("Audio error:", e);
-      }
+      } catch (e) {}
     }
 
-    // In-App Push Toast შეტყობინების გენერატორი
     function showInAppPush(title, message, iconHtml = '🔔') {
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
@@ -612,7 +650,6 @@
       }, 8000);
     }
 
-    // Auth Switch Mode
     function toggleAuthMode() {
       isRegisterMode = !isRegisterMode;
       const title = document.getElementById('authTitle');
@@ -642,7 +679,6 @@
       }
     }
 
-    // Cloud + Local Sync
     function syncAndSave() {
       if (window.currentUser) {
         localStorage.setItem(`tasks_${window.currentUser.uid}`, JSON.stringify(window.tasks));
@@ -655,14 +691,12 @@
       }
     }
 
-    // Header Init
     const now = new Date();
     document.getElementById('currentDateStr').innerText = now.toLocaleDateString('ka-GE', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
     document.getElementById('taskDate').value = now.toISOString().slice(0, 10);
 
-    // Dark / Light Mode
     function applyTheme(isLight) {
       if (isLight) {
         document.documentElement.classList.remove('dark');
@@ -687,7 +721,6 @@
       applyTheme(false);
     }
 
-    // Audio & Notifications UI Control
     function updateNotifyBtnUI() {
       const btn = document.getElementById('notifyBtn');
       const text = document.getElementById('notifyBtnText');
@@ -797,7 +830,7 @@
       });
     }
 
-    // Reminders & Birthday Alerter with Sound and Push
+    // Reminders
     setInterval(() => {
       const d = new Date();
       const currentHoursMin = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -809,7 +842,7 @@
         if (!t.completed && t.time === currentHoursMin && (!t.date || t.date === todayIso || (t.repeat === 'daily' && todayIso >= t.date)) && !t.alerted) {
           t.alerted = true;
           syncAndSave();
-          playChime(); // ხმოვანი სიგნალი
+          playChime();
 
           const taskIcon = t.repeat === 'daily' ? '☀️' : (t.repeat === 'monthly' ? '📅' : '🔔');
           showInAppPush(`შეხსენება: ${t.category}`, `${t.title}`, taskIcon);
@@ -1132,7 +1165,7 @@
       printWindow.document.close();
     }
 
-    // Calendar & Day Breakdown
+    // Calendar
     function changeMonth(delta) {
       calDate.setMonth(calDate.getMonth() + delta);
       renderCalendar();
@@ -1278,45 +1311,330 @@
       }
     }
 
-    // Goals & Habits
-    function addGoalPrompt() {
-      const title = prompt('შეიყვანეთ ახალი მიზანი:');
-      if (title) {
-        window.goals.push({ id: Date.now(), title, progress: 10 });
+    // ==========================================
+    // GOALS & CHECKLIST ENGINE (მიზნების სისტემა)
+    // ==========================================
+    let expandedGoalId = null;
+
+    function openAddGoalModal() {
+      document.getElementById('modalGoalId').value = '';
+      document.getElementById('modalGoalTitle').value = '';
+      document.getElementById('modalGoalDeadline').value = '';
+      document.getElementById('goalModalTitle').innerHTML = '<i class="fa-solid fa-bullseye text-indigo-400"></i> ახალი მიზნის დამატება';
+      document.getElementById('goalModal').classList.remove('hidden');
+    }
+
+    function openEditGoalModal(id) {
+      const g = window.goals.find(item => item.id === id);
+      if (!g) return;
+      document.getElementById('modalGoalId').value = g.id;
+      document.getElementById('modalGoalTitle').value = g.title;
+      document.getElementById('modalGoalDeadline').value = g.deadline || '';
+      document.getElementById('goalModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400"></i> მიზნის რედაქტირება';
+      document.getElementById('goalModal').classList.remove('hidden');
+    }
+
+    function closeGoalModal() {
+      document.getElementById('goalModal').classList.add('hidden');
+    }
+
+    function saveGoalModal(e) {
+      e.preventDefault();
+      const id = document.getElementById('modalGoalId').value;
+      const title = document.getElementById('modalGoalTitle').value.trim();
+      const deadline = document.getElementById('modalGoalDeadline').value;
+
+      if (!title) return;
+
+      if (id) {
+        // რედაქტირება
+        window.goals = window.goals.map(g => g.id === Number(id) ? { ...g, title, deadline: deadline || null } : g);
+      } else {
+        // ახალი მიზანი
+        window.goals.push({
+          id: Date.now(),
+          title,
+          deadline: deadline || null,
+          progress: 0,
+          completed: false,
+          completedAt: null,
+          steps: []
+        });
+      }
+
+      syncAndSave();
+      renderGoals();
+      closeGoalModal();
+    }
+
+    function toggleGoalExpand(id) {
+      expandedGoalId = (expandedGoalId === id) ? null : id;
+      renderGoals();
+    }
+
+    // ქვე-დავალების დამატება (Checklist Step)
+    function addGoalStepPrompt(goalId) {
+      const stepTitle = prompt('ჩაწერეთ კონკრეტული ნაბიჯი / ქვე-დავალება (მაგ: თავი 1, ავანსის გადახდა):');
+      if (!stepTitle) return;
+
+      window.goals = window.goals.map(g => {
+        if (g.id === goalId) {
+          const steps = g.steps || [];
+          steps.push({ id: Date.now(), title: stepTitle.trim(), done: false });
+          return recalcGoalProgress({ ...g, steps });
+        }
+        return g;
+      });
+
+      expandedGoalId = goalId;
+      syncAndSave();
+      renderGoals();
+    }
+
+    // ქვე-დავალების მონიშვნა
+    function toggleGoalStep(goalId, stepId) {
+      window.goals = window.goals.map(g => {
+        if (g.id === goalId) {
+          const steps = (g.steps || []).map(s => s.id === stepId ? { ...s, done: !s.done } : s);
+          return recalcGoalProgress({ ...g, steps });
+        }
+        return g;
+      });
+
+      syncAndSave();
+      renderGoals();
+    }
+
+    // ქვე-დავალების წაშლა
+    function deleteGoalStep(goalId, stepId) {
+      window.goals = window.goals.map(g => {
+        if (g.id === goalId) {
+          const steps = (g.steps || []).filter(s => s.id !== stepId);
+          return recalcGoalProgress({ ...g, steps });
+        }
+        return g;
+      });
+
+      syncAndSave();
+      renderGoals();
+    }
+
+    // პროგრესის ავტომატური გადათვლა
+    function recalcGoalProgress(goal) {
+      if (!goal.steps || goal.steps.length === 0) return goal;
+      const doneCount = goal.steps.filter(s => s.done).length;
+      const progress = Math.round((doneCount / goal.steps.length) * 100);
+
+      if (progress === 100 && !goal.completed) {
+        playChime();
+        showInAppPush('🏆 მიზანი მიღწეულია!', `გილოცავთ! მიზანი „${goal.title}“ წარმატებით გადავიდა თქვენს მიღწევებში.`, '🏆');
+        return {
+          ...goal,
+          progress: 100,
+          completed: true,
+          completedAt: new Date().toISOString().slice(0, 10)
+        };
+      } else if (progress < 100 && goal.completed) {
+        return {
+          ...goal,
+          progress,
+          completed: false,
+          completedAt: null
+        };
+      }
+
+      return { ...goal, progress };
+    }
+
+    // ხელით პროგრესის მართვა (+/- 10%)
+    function adjustGoal(id, delta) {
+      window.goals = window.goals.map(g => {
+        if (g.id === id) {
+          const current = g.progress || 0;
+          const newProg = Math.min(100, Math.max(0, current + delta));
+          if (newProg === 100 && !g.completed) {
+            playChime();
+            showInAppPush('🏆 მიზანი მიღწეულია!', `გილოცავთ! მიზანი „${g.title}“ მიღწეულია!`, '🏆');
+            return { ...g, progress: 100, completed: true, completedAt: new Date().toISOString().slice(0, 10) };
+          }
+          return { ...g, progress: newProg, completed: false, completedAt: null };
+        }
+        return g;
+      });
+      syncAndSave();
+      renderGoals();
+    }
+
+    // მიზნის პირდაპირი დასრულება („პტიჩკა“)
+    function completeGoal(id) {
+      window.goals = window.goals.map(g => {
+        if (g.id === id) {
+          const updatedSteps = (g.steps || []).map(s => ({ ...s, done: true }));
+          return {
+            ...g,
+            progress: 100,
+            completed: true,
+            completedAt: new Date().toISOString().slice(0, 10),
+            steps: updatedSteps
+          };
+        }
+        return g;
+      });
+      playChime();
+      showInAppPush('🏆 მიზანი მიღწეულია!', 'გილოცავთ! მიზანი გადავიდა თქვენს მიღწევებში.', '🏆');
+      syncAndSave();
+      renderGoals();
+    }
+
+    // მიღწევებიდან მიზნის უკან დაბრუნება
+    function uncompleteGoal(id) {
+      window.goals = window.goals.map(g => {
+        if (g.id === id) {
+          return { ...g, completed: false, completedAt: null, progress: 90 };
+        }
+        return g;
+      });
+      syncAndSave();
+      renderGoals();
+    }
+
+    function deleteGoal(id) {
+      if (confirm('ნამდვილად გსურთ ამ მიზნის წაშლა?')) {
+        window.goals = window.goals.filter(g => g.id !== id);
         syncAndSave();
         renderGoals();
       }
     }
 
-    function adjustGoal(id, delta) {
-      window.goals = window.goals.map(g => g.id === id ? { ...g, progress: Math.min(100, Math.max(0, g.progress + delta)) } : g);
-      syncAndSave();
-      renderGoals();
+    function toggleAchievements() {
+      const list = document.getElementById('achievementsList');
+      const icon = document.getElementById('achieveChevron');
+      list.classList.toggle('hidden');
+      icon.classList.toggle('rotate-180');
+    }
+
+    function getGoalDeadlineBadge(deadlineStr) {
+      if (!deadlineStr) return '';
+      const today = new Date(new Date().toISOString().slice(0, 10));
+      const target = new Date(deadlineStr);
+      const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+
+      if (diffDays > 0) {
+        return `<span class="text-[9px] px-2 py-0.5 rounded-md bg-indigo-950/60 border border-indigo-700/50 text-indigo-300 font-medium">⏳ დარჩა ${diffDays} დღე</span>`;
+      } else if (diffDays === 0) {
+        return `<span class="text-[9px] px-2 py-0.5 rounded-md bg-amber-950/80 border border-amber-600/70 text-amber-300 font-bold animate-pulse">⚠️ დღეს იწურება!</span>`;
+      } else {
+        return `<span class="text-[9px] px-2 py-0.5 rounded-md bg-rose-950/80 border border-rose-700/70 text-rose-300 font-bold" title="დააწკაპუნეთ რედაქტირებისთვის">🚨 გადაცდა ${Math.abs(diffDays)} დღით</span>`;
+      }
     }
 
     function renderGoals() {
       const container = document.getElementById('goalsList');
+      const achieveList = document.getElementById('achievementsList');
+      const achieveCount = document.getElementById('achievementsCount');
+      if (!container) return;
+
       container.innerHTML = '';
-      window.goals.forEach(g => {
-        const div = document.createElement('div');
-        div.className = 'space-y-1';
-        div.innerHTML = `
-          <div class="flex justify-between items-center text-[11px]">
-            <span class="font-medium truncate text-slate-200">${g.title}</span>
-            <div class="flex items-center gap-1">
-              <button onclick="adjustGoal(${g.id}, -10)" class="w-4 h-4 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold">-</button>
-              <span class="text-slate-400 font-semibold w-7 text-center">${g.progress}%</span>
-              <button onclick="adjustGoal(${g.id}, 10)" class="w-4 h-4 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold">+</button>
+      if (achieveList) achieveList.innerHTML = '';
+
+      const activeGoals = window.goals.filter(g => !g.completed);
+      const completedGoals = window.goals.filter(g => g.completed);
+
+      if (achieveCount) achieveCount.innerText = completedGoals.length;
+
+      if (activeGoals.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 py-3 text-center">აქტიური მიზნები არ არის.</p>`;
+      } else {
+        activeGoals.forEach(g => {
+          const deadlineBadge = getGoalDeadlineBadge(g.deadline);
+          const steps = g.steps || [];
+          const isExpanded = expandedGoalId === g.id;
+
+          let stepsHtml = '';
+          if (isExpanded) {
+            stepsHtml = `
+              <div class="pt-2 mt-2 border-t border-slate-700/40 space-y-1.5 text-xs">
+                <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold mb-1">
+                  <span>ეტაპები / ქვე-დავალებები (${steps.filter(s=>s.done).length}/${steps.length})</span>
+                  <button onclick="addGoalStepPrompt(${g.id})" class="text-indigo-400 hover:text-indigo-300">+ ნაბიჯის დამატება</button>
+                </div>
+                ${steps.length === 0 ? `<p class="text-[10px] text-slate-500 italic py-0.5">ნაბიჯები ჯერ არ გაქვთ დამატებული. დააჭირეთ „+ ნაბიჯის დამატებას“.</p>` : ''}
+                ${steps.map(s => `
+                  <div class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-800/80 border border-slate-700/40">
+                    <label class="flex items-center gap-2 truncate cursor-pointer select-none">
+                      <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleGoalStep(${g.id}, ${s.id})" class="rounded text-indigo-600 focus:ring-0 cursor-pointer">
+                      <span class="${s.done ? 'line-through text-slate-500' : 'text-slate-200'} text-[11px] truncate">${s.title}</span>
+                    </label>
+                    <button onclick="deleteGoalStep(${g.id}, ${s.id})" class="text-slate-500 hover:text-rose-400 text-[10px] ml-2"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }
+
+          const div = document.createElement('div');
+          div.className = 'p-2.5 rounded-xl border border-slate-700/60 bg-slate-900/60 transition';
+          div.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 truncate">
+                <button onclick="completeGoal(${g.id})" title="მიზნის შესრულება" class="w-5 h-5 rounded-lg border border-slate-600 hover:border-emerald-400 hover:bg-emerald-950/40 text-slate-400 hover:text-emerald-400 flex items-center justify-center transition shrink-0">
+                  <i class="fa-solid fa-check text-[10px]"></i>
+                </button>
+                <span class="font-bold text-xs truncate text-slate-100 cursor-pointer hover:text-indigo-300" onclick="toggleGoalExpand(${g.id})">${g.title}</span>
+                ${steps.length > 0 ? `<span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-semibold cursor-pointer" onclick="toggleGoalExpand(${g.id})">${steps.filter(s=>s.done).length}/${steps.length}</span>` : ''}
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button onclick="adjustGoal(${g.id}, -10)" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold">-</button>
+                <span class="text-xs text-indigo-300 font-bold w-9 text-center">${g.progress || 0}%</span>
+                <button onclick="adjustGoal(${g.id}, 10)" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold">+</button>
+                <button onclick="toggleGoalExpand(${g.id})" class="text-slate-400 hover:text-slate-200 ml-1 p-1 text-[11px]" title="ქვე-დავალებები"><i class="fa-solid fa-list-check"></i></button>
+                <button onclick="openEditGoalModal(${g.id})" class="text-slate-400 hover:text-indigo-400 p-1 text-[11px]" title="რედაქტირება"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteGoal(${g.id})" class="text-slate-500 hover:text-rose-400 p-1 text-[11px]" title="წაშლა"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
             </div>
-          </div>
-          <div class="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
-            <div class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: ${g.progress}%"></div>
-          </div>
-        `;
-        container.appendChild(div);
-      });
+
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
+              <div class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: ${g.progress || 0}%"></div>
+            </div>
+
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1.5">
+              <span>დედლაინი: ${g.deadline || 'განუსაზღვრელი'}</span>
+              ${deadlineBadge}
+            </div>
+
+            ${stepsHtml}
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      // მიღწევების არქივი
+      if (achieveList) {
+        if (completedGoals.length === 0) {
+          achieveList.innerHTML = `<p class="text-xs text-slate-500 py-1">ჯერ არ გაქვთ მიღწეული მიზნები.</p>`;
+        } else {
+          completedGoals.forEach(g => {
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between p-2 rounded-xl bg-amber-950/20 border border-amber-600/40 text-xs';
+            item.innerHTML = `
+              <div class="flex items-center gap-2 truncate">
+                <span class="text-amber-400 text-sm">🏆</span>
+                <div class="truncate">
+                  <span class="font-bold text-amber-200 truncate block">${g.title}</span>
+                  <span class="text-[9px] text-slate-400">შესრულდა: ${g.completedAt || 'დღეს'}</span>
+                </div>
+              </div>
+              <button onclick="uncompleteGoal(${g.id})" title="დაბრუნება აქტიურებში" class="text-slate-500 hover:text-amber-300 text-xs px-1">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+            `;
+            achieveList.appendChild(item);
+          });
+        }
+      }
     }
 
+    // Habits
     function addHabitPrompt() {
       const title = prompt('შეიყვანეთ ახალი ჩვევა:');
       if (title) {
