@@ -809,6 +809,24 @@
       renderCalendar();
     }
 
+    function editBirthdayPrompt(id) {
+      const b = window.birthdays.find(item => item.id === id);
+      if (!b) return;
+
+      const newName = prompt('შეცვალეთ სახელი და გვარი:', b.name);
+      if (!newName) return;
+
+      const newDate = prompt('შეცვალეთ დაბადების თარიღი (YYYY-MM-DD ან MM-DD):', b.date);
+      if (!newDate) return;
+
+      b.name = newName.trim();
+      b.date = newDate.trim();
+
+      syncAndSave();
+      renderBirthdays();
+      renderCalendar();
+    }
+
     function deleteBirthday(id) {
       window.birthdays = window.birthdays.filter(b => b.id !== id);
       syncAndSave();
@@ -865,11 +883,16 @@
               <span class="text-[10px] text-slate-400 block">${b.status.turningAge ? b.status.turningAge + ' • ' : ''}${b.date}</span>
             </div>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5 shrink-0">
             <span class="text-[11px] font-semibold px-2 py-0.5 rounded ${isToday ? 'bg-amber-600 text-white' : 'bg-slate-800 text-amber-400'}">
               ${isToday ? 'დღესაა!' : `${b.status.daysLeft} დღეში`}
             </span>
-            <button onclick="deleteBirthday(${b.id})" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="editBirthdayPrompt(${b.id})" class="text-slate-400 hover:text-indigo-400 p-1 transition" title="რედაქტირება">
+              <i class="fa-solid fa-pen text-[11px]"></i>
+            </button>
+            <button onclick="deleteBirthday(${b.id})" class="text-slate-500 hover:text-rose-400 p-1 transition" title="წაშლა">
+              <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
           </div>
         `;
         container.appendChild(div);
@@ -1834,7 +1857,6 @@
         return;
       }
 
-      // დაულაგებელი ჯერ დაუხურავი, შემდეგ ნაყიდი პროდუქტები
       const sorted = [...items].sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
 
       sorted.forEach(item => {
